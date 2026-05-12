@@ -21,13 +21,11 @@ export default function Home() {
   const [memo, setMemo] = useState('')
   const [savedMemo, setSavedMemo] = useState('')
   const [memoSaving, setMemoSaving] = useState(false)
+  const [hasCard, setHasCard] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('sentos')
-        .select('*')
-        .order('name')
+      const { data } = await supabase.from('sentos').select('*').order('name')
       setSentos(data ?? [])
       setLoading(false)
     }
@@ -46,259 +44,284 @@ export default function Home() {
     })
   }
 
+  function getUserKey() {
+    let key = localStorage.getItem('user_key')
+    if (!key) { key = Math.random().toString(36).slice(2); localStorage.setItem('user_key', key) }
+    return key
+  }
+
   async function openDetail(s: any) {
-    console.log('openDetail called', s.name)
     setDetail(s)
     setMemo('')
     setSavedMemo('')
+    setHasCard(false)
     const userKey = getUserKey()
     const { data } = await supabase
-      .from('memos')
-      .select('body')
-      .eq('sento_id', s.id)
-      .eq('user_key', userKey)
-      .single()
-    if (data) {
-      setMemo(data.body)
-      setSavedMemo(data.body)
-    }
-  }
-
-  function getUserKey() {
-    let key = localStorage.getItem('user_key')
-    if (!key) {
-      key = Math.random().toString(36).slice(2)
-      localStorage.setItem('user_key', key)
-    }
-    return key
+      .from('memos').select('body')
+      .eq('sento_id', s.id).eq('user_key', userKey).single()
+    if (data) { setMemo(data.body); setSavedMemo(data.body) }
+    const { data: cardData } = await supabase
+      .from('user_cards').select('has_card')
+      .eq('sento_id', s.id).eq('user_key', userKey).single()
+    setHasCard(cardData?.has_card ?? false)
   }
 
   async function saveMemo() {
     if (!detail) return
     setMemoSaving(true)
     const userKey = getUserKey()
-    await supabase.from('memos').upsert({
-      sento_id: detail.id,
-      user_key: userKey,
-      body: memo,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'sento_id,user_key' })
+    await supabase.from('memos').upsert(
+      { sento_id: detail.id, user_key: userKey, body: memo, updated_at: new Date().toISOString() },
+      { onConflict: 'sento_id,user_key' }
+    )
     setSavedMemo(memo)
     setMemoSaving(false)
   }
 
+  async function toggleCard() {
+    if (!detail) return
+    const userKey = getUserKey()
+    const newVal = !hasCard
+    setHasCard(newVal)
+    await supabase.from('user_cards').upsert(
+      { sento_id: detail.id, user_key: userKey, has_card: newVal },
+      { onConflict: 'sento_id,user_key' }
+    )
+  }
+
   const filtered = sentos.filter(s => {
-    const matchFilter =
-      filter === 'checked' ? checked.has(s.id) :
-      filter === 'unchecked' ? !checked.has(s.id) : true
-    const matchSearch = search === '' ||
-      s.name.includes(search) ||
-      (s.address && s.address.includes(search))
+    const matchFilter = filter === 'checked' ? checked.has(s.id) : filter === 'unchecked' ? !checked.has(s.id) : true
+    const matchSearch = search === '' || s.name.includes(search) || (s.address && s.address.includes(search))
     return matchFilter && matchSearch
   })
 
-  const recommended = sentos
-    .filter(s => !checked.has(s.id))
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 3)
-
+  const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 3)
   const mapSentos = sentos.filter(s => s.lat && s.lng)
-  const images = detail?.images ? JSON.parse(detail.images) : []
-
+  const images = detail?.images ? (() => { try { return JSON.parse(detail.images) } catch { return [] } })() : []
+  const pct = sentos.length ? Math.round((checked.size / sentos.length) * 100) : 0
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-4 py-3 sticky top-0 z-10" style={{ backgroundColor: 'white', color: 'black' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold" style={{ color: 'black' }}>♨ 銭湯めぐり</h1>
-            <p className="text-sm" style={{ color: '#6b7280' }}>{checked.size} / {sentos.length} 軒制覇</p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap');
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #F7F5F0; font-family: 'Noto Sans JP', sans-serif; }
+        .app { min-height: 100vh; max-width: 480px; margin: 0 auto; background: #F7F5F0; }
+        .header { background: #1A1A2E; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 10; }
+        .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+        .app-title { font-family: 'Shippori Mincho', serif; font-size: 22px; color: #E8E0D0; font-weight: 700; letter-spacing: 0.05em; }
+        .app-subtitle { font-size: 12px; color: #8B8BA0; margin-top: 2px; letter-spacing: 0.03em; }
+        .view-toggle { display: flex; background: #2A2A40; border-radius: 8px; overflow: hidden; }
+        .view-btn { padding: 7px 14px; font-size: 12px; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; transition: all 0.2s; color: #8B8BA0; background: transparent; }
+        .view-btn.active { background: #C5A55A; color: #1A1A2E; }
+        .progress-track { height: 3px; background: #2A2A40; border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 2px; transition: width 0.5s ease; }
+        .filter-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; }
+        .filter-btn.active { background: #C5A55A; color: #1A1A2E; border-color: #C5A55A; }
+        .search-box { width: 100%; background: #2A2A40; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #E8E0D0; font-family: 'Noto Sans JP', sans-serif; outline: none; }
+        .search-box::placeholder { color: #5A5A70; }
+        .section-label { font-size: 11px; font-weight: 700; color: #8B8050; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 20px 10px; }
+        .rec-card { margin: 0 16px 10px; background: linear-gradient(135deg, #2A1F3D, #1A2840); border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid #3A3060; position: relative; overflow: hidden; }
+        .rec-card::before { content: '♨'; position: absolute; right: -10px; top: -10px; font-size: 60px; opacity: 0.06; pointer-events: none; }
+        .rec-card-body { flex: 1; min-width: 0; }
+        .rec-card-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; color: #E8E0D0; margin-bottom: 3px; }
+        .rec-card-addr { font-size: 11px; color: #7A7A90; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rec-badge { background: #C5A55A; color: #1A1A2E; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+        .list-wrap { padding: 0 16px 100px; display: flex; flex-direction: column; gap: 8px; }
+        .sento-card { background: white; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #ECEAE4; transition: all 0.2s; }
+        .sento-card.visited { background: #F0FAF5; border-color: #A8D8C0; }
+        .check-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #D0CEC8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.2s; background: white; }
+        .check-circle.done { background: #2D9E6A; border-color: #2D9E6A; }
+        .check-icon { color: white; font-size: 12px; font-weight: 700; }
+        .card-body { flex: 1; min-width: 0; cursor: pointer; }
+        .card-name { font-family: 'Shippori Mincho', serif; font-size: 14px; font-weight: 700; color: #1A1A2E; margin-bottom: 2px; }
+        .card-name.visited { color: #2D9E6A; }
+        .card-addr { font-size: 11px; color: #9A9890; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-hours { font-size: 11px; color: #B0AEA8; margin-top: 1px; }
+        .visited-tag { font-size: 10px; background: #E8F5EE; color: #2D9E6A; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 500; }
+        .loading { text-align: center; padding: 60px 20px; color: #9A9890; font-size: 14px; }
+        .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(10,10,20,0.7); backdrop-filter: blur(4px); }
+        .popup { background: #F7F5F0; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; overflow-y: auto; max-height: 88vh; }
+        .popup-drag { width: 36px; height: 4px; background: #D0CEC8; border-radius: 2px; margin: 12px auto 0; }
+        .popup-images { display: flex; overflow-x: auto; gap: 8px; padding: 12px 16px; scroll-snap-type: x mandatory; }
+        .popup-images::-webkit-scrollbar { display: none; }
+        .popup-img-wrap { flex-shrink: 0; width: 260px; height: 160px; border-radius: 12px; overflow: hidden; scroll-snap-align: start; background: #E8E4DC; display: flex; align-items: center; justify-content: center; }
+        .popup-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .popup-no-img { width: 100%; height: 120px; background: #E8E4DC; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #C0BCB4; margin-top: 12px; }
+        .popup-body { padding: 0 20px 32px; }
+        .popup-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+        .popup-name { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 700; color: #1A1A2E; line-height: 1.3; }
+        .popup-addr { font-size: 12px; color: #9A9890; margin-top: 3px; }
+        .checkin-btn { flex-shrink: 0; margin-left: 12px; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+        .checkin-btn.done { background: #2D9E6A; color: white; }
+        .checkin-btn.todo { background: #1A1A2E; color: #C5A55A; }
+        .info-grid { background: white; border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #ECEAE4; }
+        .info-row { display: flex; gap: 10px; font-size: 13px; }
+        .info-label { color: #B0AEA8; width: 56px; flex-shrink: 0; }
+        .info-val { color: #1A1A2E; }
+        .info-link { color: #C5A55A; text-decoration: none; }
+        .desc-text { font-size: 13px; color: #5A5850; line-height: 1.7; margin-bottom: 16px; }
+        .section-title { font-size: 12px; font-weight: 700; color: #8B8050; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .memo-area { width: 100%; background: white; border: 1px solid #ECEAE4; border-radius: 10px; padding: 12px; font-size: 13px; color: #1A1A2E; font-family: 'Noto Sans JP', sans-serif; resize: none; outline: none; line-height: 1.6; }
+        .memo-area:focus { border-color: #C5A55A; }
+        .save-btn { width: 100%; margin-top: 8px; padding: 11px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+        .save-btn.active { background: #1A1A2E; color: #C5A55A; }
+        .save-btn.saved { background: #F0EDE8; color: #B0AEA8; cursor: default; }
+        .card-toggle-btn { width: 100%; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+        .card-toggle-btn.has { background: #1A1A2E; color: #C5A55A; border: 2px solid #C5A55A; }
+        .card-toggle-btn.none { background: white; color: #9A9890; border: 1px solid #ECEAE4; }
+        .close-btn { width: 100%; margin-top: 10px; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 500; border: 1px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; color: #9A9890; }
+      `}</style>
+
+      <div className="app">
+        <div className="header">
+          <div className="header-top">
+            <div>
+              <div className="app-title">♨ 銭湯めぐり</div>
+              <div className="app-subtitle">{checked.size} / {sentos.length} 軒制覇　{pct > 0 ? `${pct}%` : ''}</div>
+            </div>
+            <div className="view-toggle">
+              <button className={`view-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>リスト</button>
+              <button className={`view-btn ${view === 'map' ? 'active' : ''}`} onClick={() => setView('map')}>地図</button>
+            </div>
           </div>
-          <div className="flex border rounded-lg overflow-hidden">
-            <button onClick={() => setView('list')} className={`px-3 py-1.5 text-xs font-medium transition-all ${view === 'list' ? 'bg-teal-500 text-white' : 'bg-white text-gray-500'}`}>リスト</button>
-            <button onClick={() => setView('map')} className={`px-3 py-1.5 text-xs font-medium transition-all ${view === 'map' ? 'bg-teal-500 text-white' : 'bg-white text-gray-500'}`}>地図</button>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
           </div>
+          {view === 'list' && (
+            <>
+              <div className="filter-row">
+                {(['all', 'unchecked', 'checked'] as const).map(f => (
+                  <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
+                    {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : '訪問済み'}
+                  </button>
+                ))}
+              </div>
+              <input className="search-box" type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="銭湯名・住所で検索..." />
+            </>
+          )}
         </div>
-        <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${sentos.length ? (checked.size / sentos.length) * 100 : 0}%` }} />
-        </div>
+
+        {view === 'map' && (
+          <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+            <div style={{ height: 'calc(100vh - 130px)' }}>
+              <Map defaultCenter={{ lat: 35.6762, lng: 139.6503 }} defaultZoom={11}>
+                {mapSentos.map(s => (
+                  <Marker key={s.id} position={{ lat: s.lat, lng: s.lng }} onClick={() => setSelected(s)} label="♨" />
+                ))}
+                {selected && (
+                  <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
+                    <div style={{ padding: 4, minWidth: 120 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{selected.name}</div>
+                      <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{selected.address}</div>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                        <button onClick={() => { toggleCheck(selected.id); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 20, border: 'none', background: checked.has(selected.id) ? '#eee' : '#2D9E6A', color: checked.has(selected.id) ? '#888' : 'white', cursor: 'pointer', fontWeight: 700 }}>
+                          {checked.has(selected.id) ? '✓ 訪問済み' : '行った！'}
+                        </button>
+                        <button onClick={() => { openDetail(selected); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 20, border: 'none', background: '#1A1A2E', color: '#C5A55A', cursor: 'pointer', fontWeight: 700 }}>
+                          詳細
+                        </button>
+                      </div>
+                    </div>
+                  </InfoWindow>
+                )}
+              </Map>
+            </div>
+          </APIProvider>
+        )}
         {view === 'list' && (
           <>
-            <div className="flex gap-2 mt-2">
-              {(['all', 'unchecked', 'checked'] as const).map(f => (
-                <button key={f} onClick={() => setFilter(f)} className={`text-xs px-3 py-1 rounded-full border transition-all ${filter === f ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-500 border-gray-300'}`}>
-                  {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : '訪問済み'}
-                </button>
-              ))}
-            </div>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="銭湯名・住所で検索..." className="mt-2 w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-teal-400" style={{ backgroundColor: 'white', color: 'black' }} />
+            {recommended.length > 0 && (
+              <>
+                <div className="section-label">今日のおすすめ</div>
+                {recommended.map(s => (
+                  <div key={s.id} className="rec-card" onClick={() => openDetail(s)}>
+                    <div className="rec-card-body">
+                      <div className="rec-card-name">{s.name}</div>
+                      <div className="rec-card-addr">{s.address}</div>
+                    </div>
+                    <div className="rec-badge" onClick={e => { e.stopPropagation(); openDetail(s) }}>詳細 →</div>
+                  </div>
+                ))}
+                <div className="section-label">銭湯リスト</div>
+              </>
+            )}
+            {loading ? (
+              <div className="loading">読み込み中...</div>
+            ) : (
+              <div className="list-wrap">
+                {filtered.map(s => (
+                  <div key={s.id} className={`sento-card ${checked.has(s.id) ? 'visited' : ''}`}>
+                    <div className={`check-circle ${checked.has(s.id) ? 'done' : ''}`} onClick={() => toggleCheck(s.id)}>
+                      {checked.has(s.id) && <span className="check-icon">✓</span>}
+                    </div>
+                    <div className="card-body" onClick={() => openDetail(s)}>
+                      <div className={`card-name ${checked.has(s.id) ? 'visited' : ''}`}>{s.name}</div>
+                      <div className="card-addr">{s.address}</div>
+                      {s.open_hours && <div className="card-hours">{s.open_hours}</div>}
+                    </div>
+                    {checked.has(s.id) && <span className="visited-tag">訪問済み</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
-      </header>
-      {view === 'map' && (
-        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-          <div style={{ height: 'calc(100vh - 120px)' }}>
-            <Map defaultCenter={{ lat: 35.6762, lng: 139.6503 }} defaultZoom={11}>
-              {mapSentos.map(s => (
-                <Marker key={s.id} position={{ lat: s.lat, lng: s.lng }} onClick={() => setSelected(s)} label="♨" />
-              ))}
-              {selected && (
-                <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
-                  <div className="p-1 min-w-32">
-                    <h3 className="font-bold text-sm">{selected.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{selected.address}</p>
-                    <div className="flex gap-1 mt-2">
-                      <button onClick={() => { toggleCheck(selected.id); setSelected(null) }} className={`flex-1 text-xs py-1 rounded-full font-medium ${checked.has(selected.id) ? 'bg-gray-100 text-gray-500' : 'bg-teal-500 text-white'}`}>
-                        {checked.has(selected.id) ? '✓ 訪問済み' : '行った！'}
-                      </button>
-                      <button onClick={() => { openDetail(selected); setSelected(null) }} className="flex-1 text-xs py-1 rounded-full font-medium bg-gray-100 text-gray-600">詳細</button>
-                    </div>
-                  </div>
-                </InfoWindow>
-              )}
-            </Map>
-          </div>
-        </APIProvider>
-      )}
-
-      {view === 'list' && (
-        <div>
-          {recommended.length > 0 && (
-            <div className="px-4 pt-4">
-              <h2 className="text-sm font-bold text-gray-700 mb-2">🎯 今日のおすすめ</h2>
-              <div className="flex flex-col gap-2 mb-4">
-                {recommended.map(s => (
-                  <div key={s.id} className="bg-teal-500 rounded-xl p-4 flex items-center gap-3">
-                    <span className="text-2xl cursor-pointer" onClick={() => toggleCheck(s.id)}>♨</span>
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetail(s)}>
-                      <h3 className="font-bold text-sm text-white">{s.name}</h3>
-                      <p className="text-xs text-teal-100 truncate">{s.address}</p>
-                    </div>
-                    <span onClick={() => toggleCheck(s.id)} className="text-xs bg-white text-teal-600 px-2 py-0.5 rounded-full flex-shrink-0 font-bold cursor-pointer">行く！</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="p-4">
-            {loading ? (
-              <p className="text-center text-gray-400 mt-10">読み込み中...</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {filtered.map(s => (
-                  <div key={s.id} className={`bg-white rounded-xl p-4 border flex items-center gap-3 transition-all ${checked.has(s.id) ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}>
-                    <div onClick={() => toggleCheck(s.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer ${checked.has(s.id) ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
-                      {checked.has(s.id) && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openDetail(s)}>
-                      <h2 className={`font-bold text-sm ${checked.has(s.id) ? 'text-teal-700' : 'text-gray-800'}`}>{s.name}</h2>
-                      <p className="text-xs text-gray-400 truncate">{s.address}</p>
-                      {s.open_hours && <p className="text-xs text-gray-400">{s.open_hours}</p>}
-                    </div>
-                    {checked.has(s.id) && (
-                      <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full flex-shrink-0">訪問済み</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {detail && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setDetail(null)}>
-          <div className="bg-white w-full max-w-lg rounded-t-2xl overflow-y-auto" style={{ maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
-            {images.length > 0 ? (
-  <div className="flex overflow-x-auto gap-2 p-2" style={{ scrollSnapType: 'x mandatory' }}>
-    {images.map((img: string, idx: number) => (
-      <div key={idx} className="flex-shrink-0 w-72 h-48 overflow-hidden rounded-xl" style={{ scrollSnapAlign: 'start' }}>
-        <img
-          src={img}
-          alt={`${detail.name} ${idx + 1}`}
-          className="w-full h-full object-cover"
-          onError={e => (e.currentTarget.parentElement!.style.display = 'none')}
-        />
       </div>
-    ))}
-  </div>
-            ) : (
-              <div className="w-full h-32 bg-teal-50 flex items-center justify-center">
-                <span className="text-5xl">♨</span>
+
+      {detail && (
+        <div className="overlay" onClick={() => setDetail(null)}>
+          <div className="popup" onClick={e => e.stopPropagation()}>
+            <div className="popup-drag" />
+            {images.length > 0 ? (
+              <div className="popup-images">
+                {images.map((img: string, idx: number) => (
+                  <div key={idx} className="popup-img-wrap">
+                    <img src={img} alt={`${detail.name} ${idx + 1}`} onError={e => (e.currentTarget.parentElement!.style.display = 'none')} />
+                  </div>
+                ))}
               </div>
+            ) : (
+              <div className="popup-no-img">♨</div>
             )}
-            <div className="p-5">
-              <div className="flex items-start justify-between mb-3">
+            <div className="popup-body">
+              <div className="popup-header">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{detail.name}</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">{detail.address}</p>
+                  <div className="popup-name">{detail.name}</div>
+                  <div className="popup-addr">{detail.address}</div>
                 </div>
-                <button onClick={() => toggleCheck(detail.id)} className={`ml-3 flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all ${checked.has(detail.id) ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                <button className={`checkin-btn ${checked.has(detail.id) ? 'done' : 'todo'}`} onClick={() => toggleCheck(detail.id)}>
                   {checked.has(detail.id) ? '✓ 訪問済み' : '行った！'}
                 </button>
               </div>
-              <div className="bg-gray-50 rounded-xl p-3 mb-4 space-y-1.5">
-                {detail.open_hours && (
-                  <div className="flex gap-2 text-sm">
-                    <span className="text-gray-400 w-16 flex-shrink-0">営業時間</span>
-                    <span className="text-gray-700">{detail.open_hours}</span>
-                  </div>
-                )}
-                {detail.closed_days && (
-                  <div className="flex gap-2 text-sm">
-                    <span className="text-gray-400 w-16 flex-shrink-0">定休日</span>
-                    <span className="text-gray-700">{detail.closed_days}</span>
-                  </div>
-                )}
-                {detail.phone && (
-                  <div className="flex gap-2 text-sm">
-                    <span className="text-gray-400 w-16 flex-shrink-0">電話</span>
-                    <a href={`tel:${detail.phone}`} className="text-teal-600">{detail.phone}</a>
-                  </div>
-                )}
-                {detail.price_adult && (
-                  <div className="flex gap-2 text-sm">
-                    <span className="text-gray-400 w-16 flex-shrink-0">料金</span>
-                    <span className="text-gray-700">大人 ¥{detail.price_adult}</span>
-                  </div>
-                )}
-                {detail.website && (
-                  <div className="flex gap-2 text-sm">
-                    <span className="text-gray-400 w-16 flex-shrink-0">公式HP</span>
-                    <a href={detail.website} target="_blank" rel="noreferrer" className="text-teal-600 underline">リンク</a>
-                  </div>
-                )}
+              <div className="info-grid">
+                {detail.open_hours && <div className="info-row"><span className="info-label">営業時間</span><span className="info-val">{detail.open_hours}</span></div>}
+                {detail.closed_days && <div className="info-row"><span className="info-label">定休日</span><span className="info-val">{detail.closed_days}</span></div>}
+                {detail.phone && <div className="info-row"><span className="info-label">電話</span><a className="info-link" href={`tel:${detail.phone}`}>{detail.phone}</a></div>}
+                {detail.price_adult && <div className="info-row"><span className="info-label">料金</span><span className="info-val">大人 ¥{detail.price_adult}</span></div>}
+                {detail.website && <div className="info-row"><span className="info-label">公式HP</span><a className="info-link" href={detail.website} target="_blank" rel="noreferrer">リンク →</a></div>}
               </div>
-              {detail.description && (
-                <p className="text-sm text-gray-600 leading-relaxed mb-4">{detail.description}</p>
-              )}
-              <div className="mb-4">
-                <h3 className="text-sm font-bold text-gray-700 mb-2">📝 一言メモ</h3>
-                <textarea
-                  value={memo}
-                  onChange={e => setMemo(e.target.value)}
-                  placeholder="この銭湯の感想を書いてみよう..."
-                  className="w-full text-sm border border-gray-200 rounded-xl p-3 outline-none focus:border-teal-400 resize-none"
-                  style={{ backgroundColor: 'white', color: 'black' }}
-                  rows={3}
-                />
-                <button
-                  onClick={saveMemo}
-                  disabled={memoSaving || memo === savedMemo}
-                  className={`mt-2 w-full py-2 rounded-xl text-sm font-bold transition-all ${memo === savedMemo ? 'bg-gray-100 text-gray-400' : 'bg-teal-500 text-white'}`}
-                >
-                  {memoSaving ? '保存中...' : memo === savedMemo ? '保存済み ✓' : 'メモを保存'}
+              {detail.description && <div className="desc-text">{detail.description}</div>}
+              <div style={{ marginBottom: 16 }}>
+                <div className="section-title">🎴 コレクションカード</div>
+                <button className={`card-toggle-btn ${hasCard ? 'has' : 'none'}`} onClick={toggleCard}>
+                  {hasCard ? '🎴 カード保有中' : 'カードを持っていない'}
                 </button>
               </div>
-              <button onClick={() => setDetail(null)} className="w-full py-3 rounded-xl text-sm font-bold bg-gray-100 text-gray-600">
-                閉じる
-              </button>
+              <div style={{ marginBottom: 16 }}>
+                <div className="section-title">📝 一言メモ</div>
+                <textarea className="memo-area" value={memo} onChange={e => setMemo(e.target.value)} placeholder="この銭湯の感想を書いてみよう..." rows={3} />
+                {memo.length > 0 && (
+  <button className={`save-btn ${memo === savedMemo ? 'saved' : 'active'}`} onClick={saveMemo} disabled={memoSaving || memo === savedMemo}>
+    {memoSaving ? '保存中...' : memo === savedMemo ? '保存済み ✓' : 'メモを保存'}
+  </button>
+)}
+              </div>
+              <button className="close-btn" onClick={() => setDetail(null)}>閉じる</button>
             </div>
           </div>
         </div>
       )}
-    </main>
+    </>
   )
 }
