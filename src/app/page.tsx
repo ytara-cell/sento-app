@@ -212,9 +212,18 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={() => setDetail(null)}>
           <div className="bg-white w-full max-w-lg rounded-t-2xl overflow-y-auto" style={{ maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
             {images.length > 0 ? (
-              <div className="w-full h-48 overflow-hidden">
-                <img src={images[0]} alt={detail.name} className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
-              </div>
+  <div className="flex overflow-x-auto gap-2 p-2" style={{ scrollSnapType: 'x mandatory' }}>
+    {images.map((img: string, idx: number) => (
+      <div key={idx} className="flex-shrink-0 w-72 h-48 overflow-hidden rounded-xl" style={{ scrollSnapAlign: 'start' }}>
+        <img
+          src={img}
+          alt={`${detail.name} ${idx + 1}`}
+          className="w-full h-full object-cover"
+          onError={e => (e.currentTarget.parentElement!.style.display = 'none')}
+        />
+      </div>
+    ))}
+  </div>
             ) : (
               <div className="w-full h-32 bg-teal-50 flex items-center justify-center">
                 <span className="text-5xl">♨</span>
