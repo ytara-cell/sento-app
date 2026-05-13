@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { APIProvider, Map, Marker, InfoWindow } from '@vis.gl/react-google-maps'
 
@@ -14,7 +14,8 @@ export default function Home() {
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked' | 'no_card'>('all')
-  const [view, setView] = useState<'list' | 'map'>('list')
+  const [view, setView] = useState<'list' | 'map' | 'area'>('list')
+  const [areaFilter, setAreaFilter] = useState<string>('')
   const [selected, setSelected] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<any>(null)
@@ -108,17 +109,39 @@ export default function Home() {
     )
   }
 
+  function extractArea(address: string): string {
+    const m = address.match(/東京都(.+?[区市])/)
+    return m ? m[1] : 'その他'
+  }
+
+  const areaStats = useMemo(() => {
+    const rec: Record<string, { total: number; visited: number; card: number }> = {}
+    for (const s of sentos) {
+      const area = extractArea(s.address ?? '')
+      if (!rec[area]) rec[area] = { total: 0, visited: 0, card: 0 }
+      rec[area].total++
+      if (checked.has(s.id)) rec[area].visited++
+      if (cardSet.has(s.id)) rec[area].card++
+    }
+    return Object.entries(rec)
+      .map(([name, stat]) => ({ name, ...stat }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+  }, [sentos, checked, cardSet])
+
   const filtered = sentos.filter(s => {
     const matchFilter =
       filter === 'checked' ? checked.has(s.id) :
       filter === 'unchecked' ? !checked.has(s.id) :
       filter === 'no_card' ? checked.has(s.id) && !cardSet.has(s.id) : true
     const matchSearch = search === '' || s.name.includes(search) || (s.address && s.address.includes(search))
-    return matchFilter && matchSearch
+    const matchArea = areaFilter === '' || extractArea(s.address ?? '') === areaFilter
+    return matchFilter && matchSearch && matchArea
   })
 
   const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 3)
-  const mapSentos = sentos.filter(s => s.lat && s.lng)
+  const mapSentos = useMemo(() => {
+  return sentos.filter(s => s.lat && s.lng);
+}, [sentos]);
   const images = detail?.images ? (() => { try { return JSON.parse(detail.images) } catch { return [] } })() : []
   const pct = sentos.length ? Math.round((checked.size / sentos.length) * 100) : 0
   return (
@@ -193,6 +216,14 @@ export default function Home() {
         .card-toggle-btn.has { background: #1A1A2E; color: #C5A55A; border: 2px solid #C5A55A; }
         .card-toggle-btn.none { background: white; color: #9A9890; border: 1px solid #ECEAE4; }
         .close-btn { width: 100%; margin-top: 10px; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 500; border: 1px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; color: #9A9890; }
+        .area-card { background: white; border-radius: 12px; padding: 14px 16px; cursor: pointer; border: 1px solid #ECEAE4; transition: all 0.2s; }
+        .area-card:active { transform: scale(0.98); }
+        .area-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; color: #1A1A2E; }
+        .area-count { font-size: 12px; color: #9A9890; }
+        .area-track { height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; }
+        .area-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 3px; transition: width 0.5s ease; }
+        .area-pct { font-size: 11px; color: #9A9890; }
+        .area-link { font-size: 11px; color: #C5A55A; }
       `}</style>
 
       <div className="app">
@@ -205,6 +236,7 @@ export default function Home() {
             <div className="view-toggle">
               <button className={`view-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>リスト</button>
               <button className={`view-btn ${view === 'map' ? 'active' : ''}`} onClick={() => setView('map')}>地図</button>
+              <button className={`view-btn ${view === 'area' ? 'active' : ''}`} onClick={() => setView('area')}>エリア</button>
             </div>
           </div>
           <div className="progress-track">
@@ -212,6 +244,14 @@ export default function Home() {
           </div>
           {view === 'list' && (
             <>
+              {areaFilter && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, color: '#C5A55A', background: '#2A2A40', padding: '4px 10px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📍 {areaFilter}
+                    <button onClick={() => setAreaFilter('')} style={{ background: 'none', border: 'none', color: '#8B8BA0', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>✕</button>
+                  </span>
+                </div>
+              )}
               <div className="filter-row">
                 {(['all', 'unchecked', 'checked', 'no_card'] as const).map(f => (
                   <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
@@ -224,6 +264,31 @@ export default function Home() {
           )}
         </div>
 
+        {view === 'area' && (
+          <div style={{ padding: '0 16px 100px' }}>
+            <div className="section-label" style={{ paddingLeft: 0 }}>エリア別進捗 ({areaStats.length}エリア)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {areaStats.map(a => {
+                const pct = a.total ? Math.round((a.visited / a.total) * 100) : 0
+                return (
+                  <div key={a.name} className="area-card" onClick={() => { setAreaFilter(a.name); setView('list') }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                      <span className="area-name">{a.name}</span>
+                      <span className="area-count">{a.visited} / {a.total} 軒　🎴 {a.card}</span>
+                    </div>
+                    <div className="area-track">
+                      <div className="area-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                      <span className="area-pct">{pct}% 制覇</span>
+                      <span className="area-link">リストを見る →</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
         {view === 'map' && (
           <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
             <div style={{ height: 'calc(100vh - 90px)' }}>
