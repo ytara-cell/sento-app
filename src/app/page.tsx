@@ -672,15 +672,14 @@ export default function Home() {
                 <div className="fac-grid">
                   {FACILITIES.map(f => {
                     const val = detail[f.key] as boolean | null | undefined
-                    const next = val === null || val === undefined ? true : val === true ? false : null
                     return (
-                      <button key={f.key}
+                      <div key={f.key}
                         className={`fac-toggle ${val === true ? 'yes' : val === false ? 'no' : 'unknown'}`}
-                        onClick={() => updateFacility(f.key, next)}>
+                        style={{ cursor: 'default' }}>
                         <span className="fac-toggle-icon">{f.icon}</span>
                         <span className="fac-toggle-label">{f.label}</span>
                         <span className="fac-toggle-state">{val === true ? 'あり' : val === false ? 'なし' : '?'}</span>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
