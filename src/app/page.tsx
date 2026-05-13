@@ -273,7 +273,7 @@ export default function Home() {
     return 0
   })
 
-  const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 3)
+  const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 6)
   const mapSentos = useMemo(() => {
   return sentos.filter(s => s.lat && s.lng);
 }, [sentos]);
@@ -301,12 +301,14 @@ export default function Home() {
         .search-box { width: 100%; background: #2A2A40; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #E8E0D0; font-family: 'Noto Sans JP', sans-serif; outline: none; }
         .search-box::placeholder { color: #5A5A70; }
         .section-label { font-size: 11px; font-weight: 700; color: #8B8050; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 20px 10px; }
-        .rec-card { margin: 0 16px 10px; background: linear-gradient(135deg, #2A1F3D, #1A2840); border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid #3A3060; position: relative; overflow: hidden; }
-        .rec-card::before { content: '♨'; position: absolute; right: -10px; top: -10px; font-size: 60px; opacity: 0.06; pointer-events: none; }
-        .rec-card-body { flex: 1; min-width: 0; }
-        .rec-card-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; color: #E8E0D0; margin-bottom: 3px; }
-        .rec-card-addr { font-size: 11px; color: #7A7A90; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rec-badge { background: #C5A55A; color: #1A1A2E; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+        .rec-scroll { display: flex; gap: 12px; padding: 4px 16px 16px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+        .rec-scroll::-webkit-scrollbar { display: none; }
+        .rec-card { flex-shrink: 0; width: 150px; border-radius: 14px; overflow: hidden; cursor: pointer; background: #1A1A2E; scroll-snap-align: start; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .rec-card-img { width: 150px; height: 110px; object-fit: cover; display: block; }
+        .rec-card-placeholder { width: 150px; height: 110px; background: linear-gradient(135deg, #2A1F3D, #1A2840); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #C5A55A; }
+        .rec-card-body { padding: 8px 10px 10px; }
+        .rec-card-name { font-family: 'Shippori Mincho', serif; font-size: 13px; font-weight: 700; color: #E8E0D0; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rec-card-addr { font-size: 10px; color: #7A7A90; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .list-wrap { padding: 0 16px 100px; display: flex; flex-direction: column; gap: 8px; }
         .sento-card { background: white; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #ECEAE4; transition: all 0.2s; }
         .sento-card.visited { background: #F0FAF5; border-color: #A8D8C0; }
@@ -496,15 +498,25 @@ export default function Home() {
             {recommended.length > 0 && (
               <>
                 <div className="section-label">今日のおすすめ</div>
-                {recommended.map(s => (
-                  <div key={s.id} className="rec-card" onClick={() => openDetail(s)}>
-                    <div className="rec-card-body">
-                      <div className="rec-card-name">{s.name}</div>
-                      <div className="rec-card-addr">{s.address}</div>
-                    </div>
-                    <div className="rec-badge" onClick={e => { e.stopPropagation(); openDetail(s) }}>詳細 →</div>
-                  </div>
-                ))}
+                <div className="rec-scroll">
+                  {recommended.map(s => {
+                    const imgs = (() => { try { return JSON.parse(s.images) } catch { return [] } })()
+                    const thumb = imgs[0] ?? null
+                    return (
+                      <div key={s.id} className="rec-card" onClick={() => openDetail(s)}>
+                        {thumb
+                          ? <img className="rec-card-img" src={thumb} alt={s.name} onError={e => { e.currentTarget.style.display = 'none'; (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex' }} />
+                          : null
+                        }
+                        <div className="rec-card-placeholder" style={{ display: thumb ? 'none' : 'flex' }}>♨</div>
+                        <div className="rec-card-body">
+                          <div className="rec-card-name">{s.name}</div>
+                          <div className="rec-card-addr">{s.address}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
                 <div className="section-label">銭湯リスト</div>
               </>
             )}
