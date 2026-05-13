@@ -87,7 +87,7 @@ export default function Home() {
   const [sentos, setSentos] = useState<any[]>([])
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked' | 'no_card'>('all')
+  const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked' | 'no_card' | 'favorite'>('all')
   const [view, setView] = useState<'list' | 'map' | 'area'>('list')
   const [areaFilter, setAreaFilter] = useState<string>('')
   const [facilityFilter, setFacilityFilter] = useState<string>('')
@@ -103,6 +103,7 @@ export default function Home() {
   const [hasCard, setHasCard] = useState(false)
   const [cardCount, setCardCount] = useState(0)
   const [cardSet, setCardSet] = useState<Set<string>>(new Set())
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function load() {
@@ -113,6 +114,8 @@ export default function Home() {
     load()
     const saved = localStorage.getItem('checked_sentos')
     if (saved) setChecked(new Set(JSON.parse(saved)))
+    const savedFav = localStorage.getItem('favorite_sentos')
+    if (savedFav) setFavorites(new Set(JSON.parse(savedFav)))
   }, [])
 
   useEffect(() => {
@@ -156,6 +159,16 @@ export default function Home() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
+  }
+
+  function toggleFavorite(id: string) {
+    setFavorites(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      localStorage.setItem('favorite_sentos', JSON.stringify([...next]))
+      return next
+    })
   }
 
   function toggleCheck(id: string) {
@@ -258,7 +271,8 @@ export default function Home() {
     const matchFilter =
       filter === 'checked' ? checked.has(s.id) :
       filter === 'unchecked' ? !checked.has(s.id) :
-      filter === 'no_card' ? checked.has(s.id) && !cardSet.has(s.id) : true
+      filter === 'no_card' ? checked.has(s.id) && !cardSet.has(s.id) :
+      filter === 'favorite' ? favorites.has(s.id) : true
     const matchSearch = search === '' || s.name.includes(search) || (s.address && s.address.includes(search))
     const matchArea = areaFilter === '' || extractArea(s.address ?? '') === areaFilter
     const matchFacility = facilityFilter === '' || s[facilityFilter] === true
@@ -322,6 +336,10 @@ export default function Home() {
         .card-hours { font-size: 11px; color: #B0AEA8; margin-top: 1px; }
         .visited-tag { font-size: 10px; background: #E8F5EE; color: #2D9E6A; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 500; }
         .dist-tag { font-size: 10px; background: #EEF2FF; color: #1565C0; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
+        .fav-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #D0CEC8; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+        .fav-btn.on { color: #F5A623; }
+        .fav-btn-lg { background: none; border: none; font-size: 24px; cursor: pointer; color: #D0CEC8; padding: 0; line-height: 1; flex-shrink: 0; }
+        .fav-btn-lg.on { color: #F5A623; }
         .loading { text-align: center; padding: 60px 20px; color: #9A9890; font-size: 14px; }
         .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(10,10,20,0.7); backdrop-filter: blur(4px); }
         .popup { background: #F7F5F0; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; overflow-y: auto; max-height: 88vh; }
@@ -403,9 +421,9 @@ export default function Home() {
                 </div>
               )}
               <div className="filter-row">
-                {(['all', 'unchecked', 'checked', 'no_card'] as const).map(f => (
+                {(['all', 'unchecked', 'checked', 'favorite', 'no_card'] as const).map(f => (
                   <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-                    {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : f === 'checked' ? '訪問済み' : '🎴未取得'}
+                    {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : f === 'checked' ? '訪問済み' : f === 'favorite' ? '★ お気に入り' : '🎴未取得'}
                   </button>
                 ))}
                 <button className={`filter-btn ${sort === 'nearest' ? 'active' : ''}`} onClick={toggleNearest} disabled={locLoading}>
@@ -543,6 +561,7 @@ export default function Home() {
                     </div>
                     {s._dist !== null && <span className="dist-tag">{formatDist(s._dist)}</span>}
                     {checked.has(s.id) && <span className="visited-tag">訪問済み</span>}
+                    <button className={`fav-btn ${favorites.has(s.id) ? 'on' : ''}`} onClick={e => { e.stopPropagation(); toggleFavorite(s.id) }}>★</button>
                   </div>
                 ))}
               </div>
@@ -572,9 +591,14 @@ export default function Home() {
                   <div className="popup-name">{detail.name}</div>
                   <div className="popup-addr">{detail.address}</div>
                 </div>
-                <button className={`checkin-btn ${checked.has(detail.id) ? 'done' : 'todo'}`} onClick={() => toggleCheck(detail.id)}>
-                  {checked.has(detail.id) ? '✓ 訪問済み' : '行った！'}
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button className={`fav-btn-lg ${favorites.has(detail.id) ? 'on' : ''}`} onClick={() => toggleFavorite(detail.id)}>
+                    {favorites.has(detail.id) ? '★' : '☆'}
+                  </button>
+                  <button className={`checkin-btn ${checked.has(detail.id) ? 'done' : 'todo'}`} onClick={() => toggleCheck(detail.id)}>
+                    {checked.has(detail.id) ? '✓ 訪問済み' : '行った！'}
+                  </button>
+                </div>
               </div>
               <div className="info-grid">
                 {detail.open_hours && <div className="info-row"><span className="info-label">営業時間</span><span className="info-val">{detail.open_hours}</span></div>}
