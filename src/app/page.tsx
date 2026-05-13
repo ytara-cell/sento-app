@@ -6,6 +6,13 @@ import { APIProvider, Map, InfoWindow, useMap } from '@vis.gl/react-google-maps'
 import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer'
 import type { Marker } from '@googlemaps/markerclusterer'
 
+const STOCK_LEVELS = [
+  { key: 'abundant', label: '潤沢', color: '#22A06B', bg: '#E6F6F0' },
+  { key: 'normal',   label: '普通', color: '#2A90BF', bg: '#E0F3FB' },
+  { key: 'scarce',   label: '僅少', color: '#E07A10', bg: '#FFF3E0' },
+  { key: 'soldout',  label: '売切', color: '#D94040', bg: '#FFECEC' },
+]
+
 const FACILITIES = [
   { key: 'has_sauna',     label: 'サウナ',     icon: '🔥' },
   { key: 'has_mizuburo',  label: '水風呂',     icon: '❄️' },
@@ -104,6 +111,9 @@ export default function Home() {
   const [cardCount, setCardCount] = useState(0)
   const [cardSet, setCardSet] = useState<Set<string>>(new Set())
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [stockLatest, setStockLatest] = useState<{ level: string; reported_at: string } | null>(null)
+  const [myStock, setMyStock] = useState<string | null>(null)
+  const [stockReporting, setStockReporting] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -197,17 +207,46 @@ export default function Home() {
     window.history.back()
   }
 
+  function formatRelativeTime(isoStr: string): string {
+    const diff = Date.now() - new Date(isoStr).getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    if (hours < 1) return 'たった今'
+    if (hours < 24) return `${hours}時間前`
+    const days = Math.floor(hours / 24)
+    return `${days}日前`
+  }
+
   async function openDetail(s: any) {
     window.history.pushState({ detail: s.id }, '')
     setDetail(s)
     setMemo('')
     setSavedMemo('')
     setHasCard(cardSet.has(s.id))
+    setStockLatest(null)
+    setMyStock(null)
     const userKey = getUserKey()
-    const { data } = await supabase
-      .from('memos').select('body')
-      .eq('sento_id', s.id).eq('user_key', userKey).single()
-    if (data) { setMemo(data.body); setSavedMemo(data.body) }
+    const [memoRes, stockLatestRes, myStockRes] = await Promise.all([
+      supabase.from('memos').select('body').eq('sento_id', s.id).eq('user_key', userKey).maybeSingle(),
+      supabase.from('card_stock_reports').select('stock_level, reported_at').eq('sento_id', s.id).order('reported_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('card_stock_reports').select('stock_level').eq('sento_id', s.id).eq('user_key', userKey).maybeSingle(),
+    ])
+    if (memoRes.data) { setMemo(memoRes.data.body); setSavedMemo(memoRes.data.body) }
+    if (stockLatestRes.data) setStockLatest({ level: stockLatestRes.data.stock_level, reported_at: stockLatestRes.data.reported_at })
+    if (myStockRes.data) setMyStock(myStockRes.data.stock_level)
+  }
+
+  async function reportStock(level: string) {
+    if (!detail || stockReporting) return
+    setStockReporting(true)
+    const userKey = getUserKey()
+    const now = new Date().toISOString()
+    await supabase.from('card_stock_reports').upsert(
+      { sento_id: detail.id, user_key: userKey, stock_level: level, reported_at: now },
+      { onConflict: 'sento_id,user_key' }
+    )
+    setMyStock(level)
+    setStockLatest({ level, reported_at: now })
+    setStockReporting(false)
   }
 
   async function saveMemo() {
@@ -651,6 +690,47 @@ export default function Home() {
                 <button className={`card-toggle-btn ${hasCard ? 'has' : 'none'}`} onClick={toggleCard}>
                   {hasCard ? '🎴 カード保有中' : 'カードを持っていない'}
                 </button>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <div className="section-title">📦 カード在庫情報</div>
+                {stockLatest && (
+                  <div style={{ marginBottom: 8, fontSize: 12, color: '#9ABFD4', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>最新報告：</span>
+                    <span style={{ color: STOCK_LEVELS.find(l => l.key === stockLatest.level)?.color, fontWeight: 700 }}>
+                      {STOCK_LEVELS.find(l => l.key === stockLatest.level)?.label}
+                    </span>
+                    <span style={{ color: '#B0D4E4' }}>{formatRelativeTime(stockLatest.reported_at)}</span>
+                  </div>
+                )}
+                {!stockLatest && (
+                  <div style={{ marginBottom: 8, fontSize: 12, color: '#B0D4E4' }}>まだ報告がありません</div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                  {STOCK_LEVELS.map(lvl => (
+                    <button
+                      key={lvl.key}
+                      onClick={() => reportStock(lvl.key)}
+                      disabled={stockReporting}
+                      style={{
+                        padding: '10px 4px',
+                        borderRadius: 12,
+                        border: `1.5px solid ${myStock === lvl.key ? lvl.color : '#D8EEF8'}`,
+                        background: myStock === lvl.key ? lvl.bg : 'white',
+                        color: myStock === lvl.key ? lvl.color : '#9ABFD4',
+                        fontWeight: myStock === lvl.key ? 700 : 500,
+                        fontSize: 12,
+                        cursor: stockReporting ? 'default' : 'pointer',
+                        fontFamily: "'M PLUS Rounded 1c', sans-serif",
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {lvl.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: '#B0D4E4', marginTop: 6, textAlign: 'center' }}>
+                  タップして在庫状況をみんなで共有
+                </div>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <div className="section-title">📝 一言メモ</div>
