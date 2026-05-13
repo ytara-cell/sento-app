@@ -541,7 +541,8 @@ export default function Home() {
             {loading ? (
               <div className="loading">読み込み中...</div>
             ) : (
-              <div className="list-wrap">
+
+              <div className="list-wrap" style={{ paddingBottom: 120 }}>
                 {filtered.map(s => (
                   <div key={s.id} className={`sento-card ${checked.has(s.id) ? 'visited' : ''}`}>
                     <div className={`check-circle ${checked.has(s.id) ? 'done' : ''}`} onClick={() => toggleCheck(s.id)}>
@@ -566,6 +567,9 @@ export default function Home() {
                 ))}
               </div>
             )}
+            <div style={{ textAlign: 'center', padding: '16px 0 8px' }}>
+              <a href="/privacy" style={{ fontSize: 11, color: '#B0AEA8', textDecoration: 'none' }}>プライバシーポリシー</a>
+            </div>
           </>
         )}
       </div>
