@@ -669,7 +669,14 @@ export default function Home() {
               <div style={{ fontSize: 10, color: '#B0D4E4', marginBottom: 16, textAlign: 'right' }}>
                 情報提供：<a href="https://www.1010.or.jp/" target="_blank" rel="noreferrer" style={{ color: '#7BBCD8', textDecoration: 'none' }}>東京銭湯（1010.or.jp）</a>
               </div>
-              {detail.description && <div className="desc-text">{detail.description}</div>}
+              {detail.description && (() => {
+                const cleaned = detail.description
+                  .replace(/[^。\n]*こちら[^。\n]*[。]?/g, '')
+                  .replace(/https?:\/\/\S+/g, '')
+                  .replace(/\s{2,}/g, ' ')
+                  .trim()
+                return cleaned ? <div className="desc-text">{cleaned}</div> : null
+              })()}
               <div style={{ marginBottom: 16 }}>
                 <div className="section-title">🏨 設備情報</div>
                 <div className="fac-grid">
