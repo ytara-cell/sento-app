@@ -14,6 +14,17 @@ const FACILITIES = [
   { key: 'has_towel',     label: 'タオル貸出', icon: '🏷️' },
 ]
 
+function markerIcon(visited: boolean) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    scale: 7,
+    fillColor: visited ? '#1565C0' : '#90CAF9',
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeWeight: 2,
+  }
+}
+
 function ClusteredMarkers({ sentos, checked, onSelect }: {
   sentos: any[]
   checked: Set<string>
@@ -21,45 +32,48 @@ function ClusteredMarkers({ sentos, checked, onSelect }: {
 }) {
   const map = useMap()
   const clustererRef = useRef<MarkerClusterer | null>(null)
-  const gmMarkersRef = useRef<google.maps.Marker[]>([])
+  const markerMapRef = useRef<Record<string, google.maps.Marker>>({})
 
+  // マップ初期化時にクラスタラー作成
   useEffect(() => {
     if (!map) return
     clustererRef.current = new MarkerClusterer({
       map,
-      algorithm: new SuperClusterAlgorithm({ radius: 60 }),
+      algorithm: new SuperClusterAlgorithm({ radius: 80 }),
     })
     return () => {
       clustererRef.current?.clearMarkers()
-      gmMarkersRef.current.forEach(m => m.setMap(null))
+      Object.values(markerMapRef.current).forEach(m => m.setMap(null))
+      markerMapRef.current = {}
     }
   }, [map])
 
+  // sentos が変わったときだけマーカーを作り直す
   useEffect(() => {
     if (!clustererRef.current) return
     clustererRef.current.clearMarkers()
-    gmMarkersRef.current.forEach(m => m.setMap(null))
+    Object.values(markerMapRef.current).forEach(m => m.setMap(null))
+    markerMapRef.current = {}
 
-    const newMarkers = sentos.map(s => {
-      const isVisited = checked.has(s.id)
+    const newMarkers: google.maps.Marker[] = []
+    for (const s of sentos) {
       const marker = new google.maps.Marker({
         position: { lat: s.lat, lng: s.lng },
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: isVisited ? '#1565C0' : '#90CAF9',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
+        icon: markerIcon(checked.has(s.id)),
       })
       marker.addListener('click', () => onSelect(s))
-      return marker
-    })
-
-    gmMarkersRef.current = newMarkers
+      markerMapRef.current[s.id] = marker
+      newMarkers.push(marker)
+    }
     clustererRef.current.addMarkers(newMarkers as unknown as Marker[])
-  }, [sentos, checked])
+  }, [sentos])
+
+  // checked が変わったときはアイコンだけ更新（全再作成しない）
+  useEffect(() => {
+    for (const [id, marker] of Object.entries(markerMapRef.current)) {
+      marker.setIcon(markerIcon(checked.has(id)))
+    }
+  }, [checked])
 
   return null
 }
@@ -387,7 +401,7 @@ export default function Home() {
                 defaultZoom={13}
                 gestureHandling="greedy"
               >
-                <ClusteredMarkers sentos={mapSentos} checked={checked} onSelect={setSelected} />
+                <ClusteredMarkers sentos={filtered.filter(s => s.lat && s.lng)} checked={checked} onSelect={setSelected} />
                 {selected && (
                   <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
                     <div style={{ padding: 4, minWidth: 120 }}>
