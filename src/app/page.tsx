@@ -22,11 +22,31 @@ export default function Home() {
   const [savedMemo, setSavedMemo] = useState('')
   const [memoSaving, setMemoSaving] = useState(false)
   const [hasCard, setHasCard] = useState(false)
+  const [cardCount, setCardCount] = useState(0)
+  useEffect(() => {
+  async function loadCardCount() {
+    const userKey = getUserKey()
+    const { count } = await supabase
+      .from('user_cards')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_key', userKey)
+      .eq('has_card', true)
+    setCardCount(count ?? 0)
+  }
+  loadCardCount()
+}, [])
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('sentos').select('*').order('name')
       setSentos(data ?? [])
+      const userKey = getUserKey()
+const { count } = await supabase
+  .from('user_cards')
+  .select('*', { count: 'exact', head: true })
+  .eq('user_key', userKey)
+  .eq('has_card', true)
+setCardCount(count ?? 0)
       setLoading(false)
     }
     load()
@@ -87,6 +107,7 @@ export default function Home() {
       { sento_id: detail.id, user_key: userKey, has_card: newVal },
       { onConflict: 'sento_id,user_key' }
     )
+    setCardCount(prev => newVal ? prev + 1 : prev - 1)
   }
 
   const filtered = sentos.filter(s => {
@@ -178,7 +199,7 @@ export default function Home() {
           <div className="header-top">
             <div>
               <div className="app-title">♨ 銭湯めぐり</div>
-              <div className="app-subtitle">{checked.size} / {sentos.length} 軒制覇　{pct > 0 ? `${pct}%` : ''}</div>
+              <div className="app-subtitle">{checked.size} / {sentos.length} 軒制覇　{pct > 0 ? `${pct}%` : ''}　🎴 {cardCount}枚</div>
             </div>
             <div className="view-toggle">
               <button className={`view-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>リスト</button>
