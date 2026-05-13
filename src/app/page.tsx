@@ -142,7 +142,18 @@ export default function Home() {
     return key
   }
 
+  useEffect(() => {
+    const handler = () => setDetail(null)
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
+  function closeDetail() {
+    window.history.back()
+  }
+
   async function openDetail(s: any) {
+    window.history.pushState({ detail: s.id }, '')
     setDetail(s)
     setMemo('')
     setSavedMemo('')
@@ -470,7 +481,7 @@ export default function Home() {
       </div>
 
       {detail && (
-        <div className="overlay" onClick={() => setDetail(null)}>
+        <div className="overlay" onClick={closeDetail}>
           <div className="popup" onClick={e => e.stopPropagation()}>
             <div className="popup-drag" />
             {images.length > 0 ? (
@@ -542,13 +553,13 @@ export default function Home() {
     onClick={() => {
       setView('map')
       setSelected(detail)
-      setDetail(null)
+      closeDetail()
     }}
   >
     🗺 地図で見る
   </button>
 )}
-              <button className="close-btn" onClick={() => setDetail(null)}>閉じる</button>
+              <button className="close-btn" onClick={closeDetail}>閉じる</button>
             </div>
           </div>
         </div>
