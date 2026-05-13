@@ -42,7 +42,7 @@ function ClusteredMarkers({ sentos, checked, onSelect }: {
     const newMarkers = sentos.map(s => {
       const isVisited = checked.has(s.id)
       const dot = document.createElement('div')
-      dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${isVisited ? '#2D9E6A' : '#C5A55A'};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.35);cursor:pointer;`
+      dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${isVisited ? '#1565C0' : '#90CAF9'};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.35);cursor:pointer;`
       const marker = new google.maps.marker.AdvancedMarkerElement({
         position: { lat: s.lat, lng: s.lng },
         content: dot,
