@@ -127,7 +127,7 @@ export default function Home() {
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap');
         * { box-sizing: border-box; }
         body { margin: 0; background: #F7F5F0; font-family: 'Noto Sans JP', sans-serif; }
-        .app { min-height: 100vh; max-width: 480px; margin: 0 auto; background: #F7F5F0; }
+        .app { min-height: 100vh; background: #F7F5F0; }
         .header { background: #1A1A2E; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 10; }
         .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
         .app-title { font-family: 'Shippori Mincho', serif; font-size: 22px; color: #E8E0D0; font-weight: 700; letter-spacing: 0.05em; }
@@ -226,8 +226,8 @@ export default function Home() {
 
         {view === 'map' && (
           <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-            <div style={{ height: 'calc(100vh - 130px)' }}>
-              <Map defaultCenter={{ lat: 35.6762, lng: 139.6503 }} defaultZoom={11}>
+            <div style={{ height: 'calc(100vh - 90px)' }}>
+              <Map defaultCenter={{ lat: 35.6762, lng: 139.6503 }} defaultZoom={13}>
                 {mapSentos.map(s => (
                   <Marker key={s.id} position={{ lat: s.lat, lng: s.lng }} onClick={() => setSelected(s)} label="♨" />
                 ))}
@@ -339,6 +339,19 @@ export default function Home() {
                   </button>
                 )}
               </div>
+              {detail.lat && detail.lng && (
+  <button
+    className="close-btn"
+    style={{ marginBottom: 6, background: '#1A1A2E', color: '#C5A55A', border: 'none' }}
+    onClick={() => {
+      setView('map')
+      setSelected(detail)
+      setDetail(null)
+    }}
+  >
+    🗺 地図で見る
+  </button>
+)}
               <button className="close-btn" onClick={() => setDetail(null)}>閉じる</button>
             </div>
           </div>
