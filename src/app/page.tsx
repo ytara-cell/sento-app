@@ -343,10 +343,10 @@ export default function Home() {
         /* ヘッダー */
         .header { background: #ffffff; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 10; border-bottom: 1.5px solid #C8E8F5; box-shadow: 0 2px 10px rgba(74,168,212,0.08); }
         .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-        .app-title { font-size: 20px; color: #2A90BF; font-weight: 700; letter-spacing: 0.04em; }
-        .app-subtitle { font-size: 11px; color: #7BBCD8; margin-top: 3px; }
-        .view-toggle { display: flex; background: #E0F3FB; border-radius: 10px; overflow: hidden; gap: 2px; padding: 3px; }
-        .view-btn { padding: 5px 12px; font-size: 12px; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 500; transition: all 0.2s; color: #7BBCD8; background: transparent; border-radius: 8px; }
+        .app-title { font-size: 17px; color: #2A90BF; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
+        .app-subtitle { font-size: 11px; color: #7BBCD8; margin-top: 2px; }
+        .view-toggle { display: flex; background: #E0F3FB; border-radius: 10px; overflow: hidden; gap: 2px; padding: 3px; flex-shrink: 0; }
+        .view-btn { padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 500; transition: all 0.2s; color: #7BBCD8; background: transparent; border-radius: 8px; white-space: nowrap; }
         .view-btn.active { background: #4AADCF; color: #ffffff; }
         .progress-track { height: 5px; background: #D8EEF8; border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #4AADCF, #7DD6EE); border-radius: 3px; transition: width 0.5s ease; }
