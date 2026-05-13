@@ -296,103 +296,118 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&display=swap');
         * { box-sizing: border-box; }
-        body { margin: 0; background: #F7F5F0; font-family: 'Noto Sans JP', sans-serif; }
-        .app { min-height: 100vh; background: #F7F5F0; }
-        .header { background: #1A1A2E; padding: 20px 20px 16px; position: sticky; top: 0; z-index: 10; }
-        .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-        .app-title { font-family: 'Shippori Mincho', serif; font-size: 22px; color: #E8E0D0; font-weight: 700; letter-spacing: 0.05em; }
-        .app-subtitle { font-size: 12px; color: #8B8BA0; margin-top: 2px; letter-spacing: 0.03em; }
-        .view-toggle { display: flex; background: #2A2A40; border-radius: 8px; overflow: hidden; }
-        .view-btn { padding: 7px 14px; font-size: 12px; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; font-weight: 500; transition: all 0.2s; color: #8B8BA0; background: transparent; }
-        .view-btn.active { background: #C5A55A; color: #1A1A2E; }
-        .progress-track { height: 3px; background: #2A2A40; border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 2px; transition: width 0.5s ease; }
+        body { margin: 0; background: #EDF6FB; font-family: 'M PLUS Rounded 1c', sans-serif; }
+        .app { min-height: 100vh; background: #EDF6FB; }
+
+        /* ヘッダー */
+        .header { background: #ffffff; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 10; border-bottom: 1.5px solid #C8E8F5; box-shadow: 0 2px 10px rgba(74,168,212,0.08); }
+        .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+        .app-title { font-size: 20px; color: #2A90BF; font-weight: 700; letter-spacing: 0.04em; }
+        .app-subtitle { font-size: 11px; color: #7BBCD8; margin-top: 3px; }
+        .view-toggle { display: flex; background: #E0F3FB; border-radius: 10px; overflow: hidden; gap: 2px; padding: 3px; }
+        .view-btn { padding: 5px 12px; font-size: 12px; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 500; transition: all 0.2s; color: #7BBCD8; background: transparent; border-radius: 8px; }
+        .view-btn.active { background: #4AADCF; color: #ffffff; }
+        .progress-track { height: 5px; background: #D8EEF8; border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4AADCF, #7DD6EE); border-radius: 3px; transition: width 0.5s ease; }
         .filter-row { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 2px; }
         .filter-row::-webkit-scrollbar { display: none; }
-        .filter-btn { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; white-space: nowrap; flex-shrink: 0; }
-        .filter-btn.active { background: #C5A55A; color: #1A1A2E; border-color: #C5A55A; }
-        .search-box { width: 100%; background: #2A2A40; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #E8E0D0; font-family: 'Noto Sans JP', sans-serif; outline: none; }
-        .search-box::placeholder { color: #5A5A70; }
-        .section-label { font-size: 11px; font-weight: 700; color: #8B8050; letter-spacing: 0.1em; text-transform: uppercase; padding: 18px 20px 10px; }
+        .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1.5px solid #C8E8F5; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; transition: all 0.2s; background: #ffffff; color: #7BBCD8; white-space: nowrap; flex-shrink: 0; }
+        .filter-btn.active { background: #4AADCF; color: #ffffff; border-color: #4AADCF; }
+        .search-box { width: 100%; background: #F0F9FD; border: 1.5px solid #C8E8F5; border-radius: 10px; padding: 9px 14px; font-size: 13px; color: #2A6080; font-family: 'M PLUS Rounded 1c', sans-serif; outline: none; }
+        .search-box:focus { border-color: #4AADCF; }
+        .search-box::placeholder { color: #A8D4E8; }
+
+        /* セクション */
+        .section-label { font-size: 11px; font-weight: 700; color: #7BBCD8; letter-spacing: 0.08em; padding: 18px 20px 10px; }
+
+        /* おすすめカード */
         .rec-scroll { display: flex; gap: 12px; padding: 4px 16px 16px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
         .rec-scroll::-webkit-scrollbar { display: none; }
-        .rec-card { flex-shrink: 0; width: 150px; border-radius: 14px; overflow: hidden; cursor: pointer; background: #1A1A2E; scroll-snap-align: start; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .rec-card-img { width: 150px; height: 110px; object-fit: cover; display: block; }
-        .rec-card-placeholder { width: 150px; height: 110px; background: linear-gradient(135deg, #2A1F3D, #1A2840); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #C5A55A; }
-        .rec-card-body { padding: 8px 10px 10px; }
-        .rec-card-name { font-family: 'Shippori Mincho', serif; font-size: 13px; font-weight: 700; color: #E8E0D0; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .rec-card-addr { font-size: 10px; color: #7A7A90; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .list-wrap { padding: 0 16px 100px; display: flex; flex-direction: column; gap: 8px; }
-        .sento-card { background: white; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid #ECEAE4; transition: all 0.2s; }
-        .sento-card.visited { background: #F0FAF5; border-color: #A8D8C0; }
-        .check-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #D0CEC8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.2s; background: white; }
-        .check-circle.done { background: #2D9E6A; border-color: #2D9E6A; }
+        .rec-card { flex-shrink: 0; width: 148px; border-radius: 16px; overflow: hidden; cursor: pointer; background: #ffffff; scroll-snap-align: start; box-shadow: 0 3px 12px rgba(74,168,212,0.15); border: 1px solid #D8EEF8; }
+        .rec-card-img { width: 148px; height: 108px; object-fit: cover; display: block; }
+        .rec-card-placeholder { width: 148px; height: 108px; background: linear-gradient(135deg, #C8E8F5, #A0D4EE); display: flex; align-items: center; justify-content: center; font-size: 36px; }
+        .rec-card-body { padding: 8px 10px 10px; background: #ffffff; }
+        .rec-card-name { font-size: 12px; font-weight: 700; color: #2A6080; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rec-card-addr { font-size: 10px; color: #9ABFD4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* リスト */
+        .list-wrap { padding: 0 14px 100px; display: flex; flex-direction: column; gap: 8px; }
+        .sento-card { background: #ffffff; border-radius: 14px; padding: 13px 14px; display: flex; align-items: center; gap: 12px; border: 1px solid #D8EEF8; transition: all 0.2s; box-shadow: 0 1px 4px rgba(74,168,212,0.07); }
+        .sento-card.visited { background: #F0FBFF; border-color: #8ED4EE; }
+        .check-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #C8E8F5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.2s; background: white; }
+        .check-circle.done { background: #4AADCF; border-color: #4AADCF; }
         .check-icon { color: white; font-size: 12px; font-weight: 700; }
         .card-body { flex: 1; min-width: 0; cursor: pointer; }
-        .card-name { font-family: 'Shippori Mincho', serif; font-size: 14px; font-weight: 700; color: #1A1A2E; margin-bottom: 2px; }
-        .card-name.visited { color: #2D9E6A; }
-        .card-addr { font-size: 11px; color: #9A9890; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-hours { font-size: 11px; color: #B0AEA8; margin-top: 1px; }
-        .visited-tag { font-size: 10px; background: #E8F5EE; color: #2D9E6A; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 500; }
-        .dist-tag { font-size: 10px; background: #EEF2FF; color: #1565C0; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
-        .fav-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #D0CEC8; padding: 0 2px; flex-shrink: 0; line-height: 1; }
-        .fav-btn.on { color: #F5A623; }
-        .fav-btn-lg { background: none; border: none; font-size: 24px; cursor: pointer; color: #D0CEC8; padding: 0; line-height: 1; flex-shrink: 0; }
-        .fav-btn-lg.on { color: #F5A623; }
-        .loading { text-align: center; padding: 60px 20px; color: #9A9890; font-size: 14px; }
-        .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(10,10,20,0.7); backdrop-filter: blur(4px); }
-        .popup { background: #F7F5F0; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; overflow-y: auto; max-height: 88vh; }
-        .popup-drag { width: 36px; height: 4px; background: #D0CEC8; border-radius: 2px; margin: 12px auto 0; }
+        .card-name { font-size: 14px; font-weight: 700; color: #1E4A60; margin-bottom: 2px; }
+        .card-name.visited { color: #4AADCF; }
+        .card-addr { font-size: 11px; color: #9ABFD4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-hours { font-size: 11px; color: #B0D4E4; margin-top: 1px; }
+        .visited-tag { font-size: 10px; background: #E0F6FF; color: #4AADCF; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
+        .dist-tag { font-size: 10px; background: #E8F0FF; color: #5585C0; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
+        .fav-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #C8E0EA; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+        .fav-btn.on { color: #F5C842; }
+        .fav-btn-lg { background: none; border: none; font-size: 24px; cursor: pointer; color: #C8E0EA; padding: 0; line-height: 1; flex-shrink: 0; }
+        .fav-btn-lg.on { color: #F5C842; }
+        .loading { text-align: center; padding: 60px 20px; color: #9ABFD4; font-size: 14px; }
+
+        /* ポップアップ */
+        .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(30,74,96,0.5); backdrop-filter: blur(6px); }
+        .popup { background: #F2FAFD; width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; overflow-y: auto; max-height: 88vh; }
+        .popup-drag { width: 40px; height: 4px; background: #C8E8F5; border-radius: 2px; margin: 14px auto 0; }
         .popup-images { display: flex; overflow-x: auto; gap: 8px; padding: 12px 16px; scroll-snap-type: x mandatory; }
         .popup-images::-webkit-scrollbar { display: none; }
-        .popup-img-wrap { flex-shrink: 0; width: 260px; height: 160px; border-radius: 12px; overflow: hidden; scroll-snap-align: start; background: #E8E4DC; display: flex; align-items: center; justify-content: center; }
+        .popup-img-wrap { flex-shrink: 0; width: 260px; height: 160px; border-radius: 14px; overflow: hidden; scroll-snap-align: start; background: #D8EEF8; display: flex; align-items: center; justify-content: center; }
         .popup-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .popup-no-img { width: 100%; height: 120px; background: #E8E4DC; display: flex; align-items: center; justify-content: center; font-size: 40px; color: #C0BCB4; margin-top: 12px; }
+        .popup-no-img { width: 100%; height: 120px; background: linear-gradient(135deg, #C8E8F5, #A0D4EE); display: flex; align-items: center; justify-content: center; font-size: 44px; margin-top: 12px; }
         .popup-body { padding: 0 20px 32px; }
         .popup-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-        .popup-name { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 700; color: #1A1A2E; line-height: 1.3; }
-        .popup-addr { font-size: 12px; color: #9A9890; margin-top: 3px; }
-        .checkin-btn { flex-shrink: 0; margin-left: 12px; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
-        .checkin-btn.done { background: #2D9E6A; color: white; }
-        .checkin-btn.todo { background: #1A1A2E; color: #C5A55A; }
-        .info-grid { background: white; border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #ECEAE4; }
+        .popup-name { font-size: 20px; font-weight: 700; color: #1E4A60; line-height: 1.3; }
+        .popup-addr { font-size: 12px; color: #9ABFD4; margin-top: 3px; }
+        .checkin-btn { flex-shrink: 0; margin-left: 12px; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; transition: all 0.2s; }
+        .checkin-btn.done { background: #4AADCF; color: white; }
+        .checkin-btn.todo { background: #E0F6FF; color: #4AADCF; border: 1.5px solid #4AADCF; }
+        .info-grid { background: white; border-radius: 14px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #D8EEF8; }
         .info-row { display: flex; gap: 10px; font-size: 13px; }
-        .info-label { color: #B0AEA8; width: 56px; flex-shrink: 0; }
-        .info-val { color: #1A1A2E; }
-        .info-link { color: #C5A55A; text-decoration: none; }
-        .desc-text { font-size: 13px; color: #5A5850; line-height: 1.7; margin-bottom: 16px; }
-        .section-title { font-size: 12px; font-weight: 700; color: #8B8050; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
-        .memo-area { width: 100%; background: white; border: 1px solid #ECEAE4; border-radius: 10px; padding: 12px; font-size: 13px; color: #1A1A2E; font-family: 'Noto Sans JP', sans-serif; resize: none; outline: none; line-height: 1.6; }
-        .memo-area:focus { border-color: #C5A55A; }
-        .save-btn { width: 100%; margin-top: 8px; padding: 11px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
-        .save-btn.active { background: #1A1A2E; color: #C5A55A; }
-        .save-btn.saved { background: #F0EDE8; color: #B0AEA8; cursor: default; }
-        .card-toggle-btn { width: 100%; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
-        .card-toggle-btn.has { background: #1A1A2E; color: #C5A55A; border: 2px solid #C5A55A; }
-        .card-toggle-btn.none { background: white; color: #9A9890; border: 1px solid #ECEAE4; }
-        .close-btn { width: 100%; margin-top: 10px; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 500; border: 1px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; color: #9A9890; }
+        .info-label { color: #9ABFD4; width: 56px; flex-shrink: 0; }
+        .info-val { color: #1E4A60; }
+        .info-link { color: #4AADCF; text-decoration: none; }
+        .desc-text { font-size: 13px; color: #5A90A8; line-height: 1.8; margin-bottom: 16px; }
+        .section-title { font-size: 11px; font-weight: 700; color: #7BBCD8; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .memo-area { width: 100%; background: white; border: 1.5px solid #D8EEF8; border-radius: 12px; padding: 12px; font-size: 13px; color: #1E4A60; font-family: 'M PLUS Rounded 1c', sans-serif; resize: none; outline: none; line-height: 1.7; }
+        .memo-area:focus { border-color: #4AADCF; }
+        .save-btn { width: 100%; margin-top: 8px; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; transition: all 0.2s; }
+        .save-btn.active { background: #4AADCF; color: white; }
+        .save-btn.saved { background: #EDF6FB; color: #9ABFD4; cursor: default; }
+        .card-toggle-btn { width: 100%; padding: 13px; border-radius: 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; transition: all 0.2s; }
+        .card-toggle-btn.has { background: #4AADCF; color: white; border: none; }
+        .card-toggle-btn.none { background: white; color: #9ABFD4; border: 1.5px solid #D8EEF8; }
+        .close-btn { width: 100%; margin-top: 10px; padding: 13px; border-radius: 14px; font-size: 13px; font-weight: 500; border: 1.5px solid #D8EEF8; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; background: white; color: #9ABFD4; }
+
+        /* 設備 */
         .fac-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
         .fac-badge { font-size: 14px; }
         .fac-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .fac-toggle { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 10px; border: 1.5px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; transition: all 0.2s; }
-        .fac-toggle.yes { background: #E8F5EE; border-color: #2D9E6A; }
-        .fac-toggle.no  { background: #F5F5F5; border-color: #D0CEC8; opacity: 0.6; }
-        .fac-toggle.unknown { background: white; border-color: #ECEAE4; }
+        .fac-toggle { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 12px; border: 1.5px solid #D8EEF8; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; background: white; transition: all 0.2s; }
+        .fac-toggle.yes { background: #E0F6FF; border-color: #4AADCF; }
+        .fac-toggle.no  { background: #F5F9FC; border-color: #D8EEF8; opacity: 0.55; }
+        .fac-toggle.unknown { background: white; border-color: #D8EEF8; }
         .fac-toggle-icon { font-size: 20px; }
-        .fac-toggle-label { font-size: 10px; color: #5A5850; font-weight: 500; }
-        .fac-toggle-state { font-size: 11px; font-weight: 700; color: #2D9E6A; }
-        .fac-toggle.no .fac-toggle-state { color: #B0AEA8; }
-        .fac-toggle.unknown .fac-toggle-state { color: #C0BCB4; }
-        .area-card { background: white; border-radius: 12px; padding: 14px 16px; cursor: pointer; border: 1px solid #ECEAE4; transition: all 0.2s; }
+        .fac-toggle-label { font-size: 10px; color: #7BBCD8; font-weight: 500; }
+        .fac-toggle-state { font-size: 11px; font-weight: 700; color: #4AADCF; }
+        .fac-toggle.no .fac-toggle-state { color: #B0D4E4; }
+        .fac-toggle.unknown .fac-toggle-state { color: #C8E0EA; }
+
+        /* エリア */
+        .area-card { background: white; border-radius: 14px; padding: 14px 16px; cursor: pointer; border: 1px solid #D8EEF8; transition: all 0.2s; box-shadow: 0 1px 4px rgba(74,168,212,0.07); }
         .area-card:active { transform: scale(0.98); }
-        .area-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; color: #1A1A2E; }
-        .area-count { font-size: 12px; color: #9A9890; }
-        .area-track { height: 6px; background: #F0EDE8; border-radius: 3px; overflow: hidden; }
-        .area-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 3px; transition: width 0.5s ease; }
-        .area-pct { font-size: 11px; color: #9A9890; }
-        .area-link { font-size: 11px; color: #C5A55A; }
+        .area-name { font-size: 15px; font-weight: 700; color: #1E4A60; }
+        .area-count { font-size: 12px; color: #9ABFD4; }
+        .area-track { height: 6px; background: #D8EEF8; border-radius: 3px; overflow: hidden; }
+        .area-fill { height: 100%; background: linear-gradient(90deg, #4AADCF, #7DD6EE); border-radius: 3px; transition: width 0.5s ease; }
+        .area-pct { font-size: 11px; color: #9ABFD4; }
+        .area-link { font-size: 11px; color: #4AADCF; }
       `}</style>
 
       <div className="app">
