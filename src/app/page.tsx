@@ -1,6 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import { APIProvider, Map, InfoWindow, useMap } from '@vis.gl/react-google-maps'
+import { MarkerClusterer } from '@googlemaps/markerclusterer'
 
 const FACILITIES = [
   { key: 'has_sauna',     label: 'サウナ',     icon: '🔥' },
@@ -9,8 +12,53 @@ const FACILITIES = [
   { key: 'has_rotenburo', label: '露天風呂',   icon: '🌿' },
   { key: 'has_towel',     label: 'タオル貸出', icon: '🏷️' },
 ]
-import { createClient } from '@supabase/supabase-js'
-import { APIProvider, Map, Marker, InfoWindow } from '@vis.gl/react-google-maps'
+
+function ClusteredMarkers({ sentos, checked, onSelect }: {
+  sentos: any[]
+  checked: Set<string>
+  onSelect: (s: any) => void
+}) {
+  const map = useMap()
+  const clustererRef = useRef<MarkerClusterer | null>(null)
+  const gmMarkersRef = useRef<google.maps.Marker[]>([])
+
+  useEffect(() => {
+    if (!map) return
+    clustererRef.current = new MarkerClusterer({ map })
+    return () => {
+      clustererRef.current?.clearMarkers()
+      gmMarkersRef.current.forEach(m => m.setMap(null))
+    }
+  }, [map])
+
+  useEffect(() => {
+    if (!clustererRef.current) return
+    clustererRef.current.clearMarkers()
+    gmMarkersRef.current.forEach(m => m.setMap(null))
+
+    const newMarkers = sentos.map(s => {
+      const isVisited = checked.has(s.id)
+      const marker = new google.maps.Marker({
+        position: { lat: s.lat, lng: s.lng },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: isVisited ? '#2D9E6A' : '#C5A55A',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+      })
+      marker.addListener('click', () => onSelect(s))
+      return marker
+    })
+
+    gmMarkersRef.current = newMarkers
+    clustererRef.current.addMarkers(newMarkers)
+  }, [sentos, checked])
+
+  return null
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -330,10 +378,12 @@ export default function Home() {
         {view === 'map' && (
           <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
             <div style={{ height: 'calc(100vh - 90px)' }}>
-              <Map defaultCenter={{ lat: 35.6762, lng: 139.6503 }} defaultZoom={13}>
-                {mapSentos.map(s => (
-                  <Marker key={s.id} position={{ lat: s.lat, lng: s.lng }} onClick={() => setSelected(s)} label="♨" />
-                ))}
+              <Map
+                defaultCenter={{ lat: 35.6762, lng: 139.6503 }}
+                defaultZoom={13}
+                gestureHandling="greedy"
+              >
+                <ClusteredMarkers sentos={mapSentos} checked={checked} onSelect={setSelected} />
                 {selected && (
                   <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
                     <div style={{ padding: 4, minWidth: 120 }}>
