@@ -91,6 +91,9 @@ export default function Home() {
   const [view, setView] = useState<'list' | 'map' | 'area'>('list')
   const [areaFilter, setAreaFilter] = useState<string>('')
   const [facilityFilter, setFacilityFilter] = useState<string>('')
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null)
+  const [locLoading, setLocLoading] = useState(false)
+  const [sort, setSort] = useState<'default' | 'nearest'>('default')
   const [selected, setSelected] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<any>(null)
@@ -125,6 +128,35 @@ export default function Home() {
     }
     loadCardCount()
   }, [])
+
+  function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
+  function formatDist(m: number): string {
+    return m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`
+  }
+
+  function toggleNearest() {
+    if (sort === 'nearest') { setSort('default'); return }
+    setLocLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setSort('nearest')
+        setLocLoading(false)
+      },
+      () => {
+        alert('現在地を取得できませんでした。位置情報の許可を確認してください。')
+        setLocLoading(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
 
   function toggleCheck(id: string) {
     setChecked(prev => {
@@ -231,6 +263,14 @@ export default function Home() {
     const matchArea = areaFilter === '' || extractArea(s.address ?? '') === areaFilter
     const matchFacility = facilityFilter === '' || s[facilityFilter] === true
     return matchFilter && matchSearch && matchArea && matchFacility
+  }).map(s => ({
+    ...s,
+    _dist: (sort === 'nearest' && userLoc && s.lat && s.lng)
+      ? calcDistance(userLoc.lat, userLoc.lng, s.lat, s.lng)
+      : null
+  })).sort((a, b) => {
+    if (sort === 'nearest' && a._dist !== null && b._dist !== null) return a._dist - b._dist
+    return 0
   })
 
   const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 3)
@@ -279,6 +319,7 @@ export default function Home() {
         .card-addr { font-size: 11px; color: #9A9890; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .card-hours { font-size: 11px; color: #B0AEA8; margin-top: 1px; }
         .visited-tag { font-size: 10px; background: #E8F5EE; color: #2D9E6A; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 500; }
+        .dist-tag { font-size: 10px; background: #EEF2FF; color: #1565C0; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
         .loading { text-align: center; padding: 60px 20px; color: #9A9890; font-size: 14px; }
         .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(10,10,20,0.7); backdrop-filter: blur(4px); }
         .popup { background: #F7F5F0; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; overflow-y: auto; max-height: 88vh; }
@@ -365,6 +406,9 @@ export default function Home() {
                     {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : f === 'checked' ? '訪問済み' : '🎴未取得'}
                   </button>
                 ))}
+                <button className={`filter-btn ${sort === 'nearest' ? 'active' : ''}`} onClick={toggleNearest} disabled={locLoading}>
+                  {locLoading ? '取得中...' : '📍 近い順'}
+                </button>
               </div>
               <div className="filter-row">
                 {FACILITIES.map(f => (
@@ -471,6 +515,7 @@ export default function Home() {
                         </div>
                       )}
                     </div>
+                    {s._dist !== null && <span className="dist-tag">{formatDist(s._dist)}</span>}
                     {checked.has(s.id) && <span className="visited-tag">訪問済み</span>}
                   </div>
                 ))}
