@@ -13,7 +13,7 @@ export default function Home() {
   const [sentos, setSentos] = useState<any[]>([])
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked'>('all')
+  const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked' | 'no_card'>('all')
   const [view, setView] = useState<'list' | 'map'>('list')
   const [selected, setSelected] = useState<any>(null)
   const [search, setSearch] = useState('')
@@ -23,35 +23,31 @@ export default function Home() {
   const [memoSaving, setMemoSaving] = useState(false)
   const [hasCard, setHasCard] = useState(false)
   const [cardCount, setCardCount] = useState(0)
-  useEffect(() => {
-  async function loadCardCount() {
-    const userKey = getUserKey()
-    const { count } = await supabase
-      .from('user_cards')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_key', userKey)
-      .eq('has_card', true)
-    setCardCount(count ?? 0)
-  }
-  loadCardCount()
-}, [])
+  const [cardSet, setCardSet] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('sentos').select('*').order('name')
       setSentos(data ?? [])
-      const userKey = getUserKey()
-const { count } = await supabase
-  .from('user_cards')
-  .select('*', { count: 'exact', head: true })
-  .eq('user_key', userKey)
-  .eq('has_card', true)
-setCardCount(count ?? 0)
       setLoading(false)
     }
     load()
     const saved = localStorage.getItem('checked_sentos')
     if (saved) setChecked(new Set(JSON.parse(saved)))
+  }, [])
+
+  useEffect(() => {
+    async function loadCardCount() {
+      const userKey = getUserKey()
+      const { data, count } = await supabase
+        .from('user_cards')
+        .select('sento_id', { count: 'exact' })
+        .eq('user_key', userKey)
+        .eq('has_card', true)
+      setCardCount(count ?? 0)
+      setCardSet(new Set((data ?? []).map((d: any) => d.sento_id)))
+    }
+    loadCardCount()
   }, [])
 
   function toggleCheck(id: string) {
@@ -74,16 +70,12 @@ setCardCount(count ?? 0)
     setDetail(s)
     setMemo('')
     setSavedMemo('')
-    setHasCard(false)
+    setHasCard(cardSet.has(s.id))
     const userKey = getUserKey()
     const { data } = await supabase
       .from('memos').select('body')
       .eq('sento_id', s.id).eq('user_key', userKey).single()
     if (data) { setMemo(data.body); setSavedMemo(data.body) }
-    const { data: cardData } = await supabase
-      .from('user_cards').select('has_card')
-      .eq('sento_id', s.id).eq('user_key', userKey).single()
-    setHasCard(cardData?.has_card ?? false)
   }
 
   async function saveMemo() {
@@ -103,15 +95,24 @@ setCardCount(count ?? 0)
     const userKey = getUserKey()
     const newVal = !hasCard
     setHasCard(newVal)
+    setCardCount(prev => newVal ? prev + 1 : Math.max(0, prev - 1))
+    setCardSet(prev => {
+      const next = new Set(prev)
+      if (newVal) next.add(detail.id)
+      else next.delete(detail.id)
+      return next
+    })
     await supabase.from('user_cards').upsert(
       { sento_id: detail.id, user_key: userKey, has_card: newVal },
       { onConflict: 'sento_id,user_key' }
     )
-    setCardCount(prev => newVal ? prev + 1 : prev - 1)
   }
 
   const filtered = sentos.filter(s => {
-    const matchFilter = filter === 'checked' ? checked.has(s.id) : filter === 'unchecked' ? !checked.has(s.id) : true
+    const matchFilter =
+      filter === 'checked' ? checked.has(s.id) :
+      filter === 'unchecked' ? !checked.has(s.id) :
+      filter === 'no_card' ? checked.has(s.id) && !cardSet.has(s.id) : true
     const matchSearch = search === '' || s.name.includes(search) || (s.address && s.address.includes(search))
     return matchFilter && matchSearch
   })
@@ -136,8 +137,8 @@ setCardCount(count ?? 0)
         .view-btn.active { background: #C5A55A; color: #1A1A2E; }
         .progress-track { height: 3px; background: #2A2A40; border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 2px; transition: width 0.5s ease; }
-        .filter-row { display: flex; gap: 6px; margin-bottom: 10px; }
-        .filter-btn { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; }
+        .filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+        .filter-btn { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; white-space: nowrap; }
         .filter-btn.active { background: #C5A55A; color: #1A1A2E; border-color: #C5A55A; }
         .search-box { width: 100%; background: #2A2A40; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #E8E0D0; font-family: 'Noto Sans JP', sans-serif; outline: none; }
         .search-box::placeholder { color: #5A5A70; }
@@ -212,9 +213,9 @@ setCardCount(count ?? 0)
           {view === 'list' && (
             <>
               <div className="filter-row">
-                {(['all', 'unchecked', 'checked'] as const).map(f => (
+                {(['all', 'unchecked', 'checked', 'no_card'] as const).map(f => (
                   <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-                    {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : '訪問済み'}
+                    {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : f === 'checked' ? '訪問済み' : '🎴未取得'}
                   </button>
                 ))}
               </div>
@@ -333,10 +334,10 @@ setCardCount(count ?? 0)
                 <div className="section-title">📝 一言メモ</div>
                 <textarea className="memo-area" value={memo} onChange={e => setMemo(e.target.value)} placeholder="この銭湯の感想を書いてみよう..." rows={3} />
                 {memo.length > 0 && (
-  <button className={`save-btn ${memo === savedMemo ? 'saved' : 'active'}`} onClick={saveMemo} disabled={memoSaving || memo === savedMemo}>
-    {memoSaving ? '保存中...' : memo === savedMemo ? '保存済み ✓' : 'メモを保存'}
-  </button>
-)}
+                  <button className={`save-btn ${memo === savedMemo ? 'saved' : 'active'}`} onClick={saveMemo} disabled={memoSaving || memo === savedMemo}>
+                    {memoSaving ? '保存中...' : memo === savedMemo ? '保存済み ✓' : 'メモを保存'}
+                  </button>
+                )}
               </div>
               <button className="close-btn" onClick={() => setDetail(null)}>閉じる</button>
             </div>
