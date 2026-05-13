@@ -1,6 +1,14 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+
+const FACILITIES = [
+  { key: 'has_sauna',     label: 'サウナ',     icon: '🔥' },
+  { key: 'has_mizuburo',  label: '水風呂',     icon: '❄️' },
+  { key: 'has_shampoo',   label: 'アメニティ', icon: '🧴' },
+  { key: 'has_rotenburo', label: '露天風呂',   icon: '🌿' },
+  { key: 'has_towel',     label: 'タオル貸出', icon: '🏷️' },
+]
 import { createClient } from '@supabase/supabase-js'
 import { APIProvider, Map, Marker, InfoWindow } from '@vis.gl/react-google-maps'
 
@@ -16,6 +24,7 @@ export default function Home() {
   const [filter, setFilter] = useState<'all' | 'unchecked' | 'checked' | 'no_card'>('all')
   const [view, setView] = useState<'list' | 'map' | 'area'>('list')
   const [areaFilter, setAreaFilter] = useState<string>('')
+  const [facilityFilter, setFacilityFilter] = useState<string>('')
   const [selected, setSelected] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<any>(null)
@@ -91,6 +100,14 @@ export default function Home() {
     setMemoSaving(false)
   }
 
+  async function updateFacility(key: string, val: boolean | null) {
+    if (!detail) return
+    const updated = { ...detail, [key]: val }
+    setDetail(updated)
+    setSentos(prev => prev.map(s => s.id === detail.id ? { ...s, [key]: val } : s))
+    await supabase.from('sentos').update({ [key]: val }).eq('id', detail.id)
+  }
+
   async function toggleCard() {
     if (!detail) return
     const userKey = getUserKey()
@@ -135,7 +152,8 @@ export default function Home() {
       filter === 'no_card' ? checked.has(s.id) && !cardSet.has(s.id) : true
     const matchSearch = search === '' || s.name.includes(search) || (s.address && s.address.includes(search))
     const matchArea = areaFilter === '' || extractArea(s.address ?? '') === areaFilter
-    return matchFilter && matchSearch && matchArea
+    const matchFacility = facilityFilter === '' || s[facilityFilter] === true
+    return matchFilter && matchSearch && matchArea && matchFacility
   })
 
   const recommended = sentos.filter(s => !checked.has(s.id)).sort(() => Math.random() - 0.5).slice(0, 3)
@@ -216,6 +234,18 @@ export default function Home() {
         .card-toggle-btn.has { background: #1A1A2E; color: #C5A55A; border: 2px solid #C5A55A; }
         .card-toggle-btn.none { background: white; color: #9A9890; border: 1px solid #ECEAE4; }
         .close-btn { width: 100%; margin-top: 10px; padding: 13px; border-radius: 12px; font-size: 13px; font-weight: 500; border: 1px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; color: #9A9890; }
+        .fac-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .fac-badge { font-size: 14px; }
+        .fac-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .fac-toggle { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 10px; border: 1.5px solid #ECEAE4; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; background: white; transition: all 0.2s; }
+        .fac-toggle.yes { background: #E8F5EE; border-color: #2D9E6A; }
+        .fac-toggle.no  { background: #F5F5F5; border-color: #D0CEC8; opacity: 0.6; }
+        .fac-toggle.unknown { background: white; border-color: #ECEAE4; }
+        .fac-toggle-icon { font-size: 20px; }
+        .fac-toggle-label { font-size: 10px; color: #5A5850; font-weight: 500; }
+        .fac-toggle-state { font-size: 11px; font-weight: 700; color: #2D9E6A; }
+        .fac-toggle.no .fac-toggle-state { color: #B0AEA8; }
+        .fac-toggle.unknown .fac-toggle-state { color: #C0BCB4; }
         .area-card { background: white; border-radius: 12px; padding: 14px 16px; cursor: pointer; border: 1px solid #ECEAE4; transition: all 0.2s; }
         .area-card:active { transform: scale(0.98); }
         .area-name { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; color: #1A1A2E; }
@@ -256,6 +286,14 @@ export default function Home() {
                 {(['all', 'unchecked', 'checked', 'no_card'] as const).map(f => (
                   <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
                     {f === 'all' ? 'すべて' : f === 'unchecked' ? '未訪問' : f === 'checked' ? '訪問済み' : '🎴未取得'}
+                  </button>
+                ))}
+              </div>
+              <div className="filter-row">
+                {FACILITIES.map(f => (
+                  <button key={f.key} className={`filter-btn ${facilityFilter === f.key ? 'active' : ''}`}
+                    onClick={() => setFacilityFilter(prev => prev === f.key ? '' : f.key)}>
+                    {f.icon} {f.label}
                   </button>
                 ))}
               </div>
@@ -346,6 +384,13 @@ export default function Home() {
                       <div className={`card-name ${checked.has(s.id) ? 'visited' : ''}`}>{s.name}</div>
                       <div className="card-addr">{s.address}</div>
                       {s.open_hours && <div className="card-hours">{s.open_hours}</div>}
+                      {FACILITIES.some(f => s[f.key] === true) && (
+                        <div className="fac-badges">
+                          {FACILITIES.filter(f => s[f.key] === true).map(f => (
+                            <span key={f.key} className="fac-badge">{f.icon}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     {checked.has(s.id) && <span className="visited-tag">訪問済み</span>}
                   </div>
@@ -389,6 +434,24 @@ export default function Home() {
                 {detail.website && <div className="info-row"><span className="info-label">公式HP</span><a className="info-link" href={detail.website} target="_blank" rel="noreferrer">リンク →</a></div>}
               </div>
               {detail.description && <div className="desc-text">{detail.description}</div>}
+              <div style={{ marginBottom: 16 }}>
+                <div className="section-title">🏨 設備情報</div>
+                <div className="fac-grid">
+                  {FACILITIES.map(f => {
+                    const val = detail[f.key] as boolean | null | undefined
+                    const next = val === null || val === undefined ? true : val === true ? false : null
+                    return (
+                      <button key={f.key}
+                        className={`fac-toggle ${val === true ? 'yes' : val === false ? 'no' : 'unknown'}`}
+                        onClick={() => updateFacility(f.key, next)}>
+                        <span className="fac-toggle-icon">{f.icon}</span>
+                        <span className="fac-toggle-label">{f.label}</span>
+                        <span className="fac-toggle-state">{val === true ? 'あり' : val === false ? 'なし' : '?'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <div style={{ marginBottom: 16 }}>
                 <div className="section-title">🎴 コレクションカード</div>
                 <button className={`card-toggle-btn ${hasCard ? 'has' : 'none'}`} onClick={toggleCard}>
