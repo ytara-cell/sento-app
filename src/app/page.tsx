@@ -100,7 +100,7 @@ export default function Home() {
   const [facilityFilter, setFacilityFilter] = useState<string>('')
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null)
   const [locLoading, setLocLoading] = useState(false)
-  const [sort, setSort] = useState<'default' | 'nearest'>('default')
+  const [sort, setSort] = useState<'default' | 'nearest' | 'popular'>('default')
   const [selected, setSelected] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [detail, setDetail] = useState<any>(null)
@@ -114,6 +114,7 @@ export default function Home() {
   const [stockLatest, setStockLatest] = useState<{ level: string; reported_at: string } | null>(null)
   const [myStock, setMyStock] = useState<string | null>(null)
   const [stockReporting, setStockReporting] = useState(false)
+  const [visitCounts, setVisitCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     async function load() {
@@ -140,6 +141,18 @@ export default function Home() {
       setCardSet(new Set((data ?? []).map((d: any) => d.sento_id)))
     }
     loadCardCount()
+  }, [])
+
+  useEffect(() => {
+    async function loadVisitCounts() {
+      const { data } = await supabase.from('visit_logs').select('sento_id')
+      const counts: Record<string, number> = {}
+      for (const row of data ?? []) {
+        counts[row.sento_id] = (counts[row.sento_id] ?? 0) + 1
+      }
+      setVisitCounts(counts)
+    }
+    loadVisitCounts()
   }, [])
 
   function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -182,10 +195,18 @@ export default function Home() {
   }
 
   function toggleCheck(id: string) {
+    const userKey = getUserKey()
     setChecked(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        supabase.from('visit_logs').delete().eq('sento_id', id).eq('user_key', userKey).then()
+        setVisitCounts(c => { const n = { ...c }; if (n[id] > 1) n[id]--; else delete n[id]; return n })
+      } else {
+        next.add(id)
+        supabase.from('visit_logs').upsert({ sento_id: id, user_key: userKey, visited_at: new Date().toISOString() }, { onConflict: 'sento_id,user_key' }).then()
+        setVisitCounts(c => ({ ...c, [id]: (c[id] ?? 0) + 1 }))
+      }
       localStorage.setItem('checked_sentos', JSON.stringify([...next]))
       return next
     })
@@ -323,6 +344,7 @@ export default function Home() {
       : null
   })).sort((a, b) => {
     if (sort === 'nearest' && a._dist !== null && b._dist !== null) return a._dist - b._dist
+    if (sort === 'popular') return (visitCounts[b.id] ?? 0) - (visitCounts[a.id] ?? 0)
     return 0
   })
 
@@ -385,6 +407,7 @@ export default function Home() {
         .card-hours { font-size: 11px; color: #B0D4E4; margin-top: 1px; }
         .visited-tag { font-size: 10px; background: #E0F6FF; color: #4AADCF; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
         .dist-tag { font-size: 10px; background: #E8F0FF; color: #5585C0; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
+        .popular-tag { font-size: 10px; background: #FFF3E0; color: #E07A10; padding: 3px 8px; border-radius: 10px; flex-shrink: 0; font-weight: 700; }
         .fav-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: #C8E0EA; padding: 0 2px; flex-shrink: 0; line-height: 1; }
         .fav-btn.on { color: #F5C842; }
         .fav-btn-lg { background: none; border: none; font-size: 24px; cursor: pointer; color: #C8E0EA; padding: 0; line-height: 1; flex-shrink: 0; }
@@ -483,6 +506,9 @@ export default function Home() {
                 ))}
                 <button className={`filter-btn ${sort === 'nearest' ? 'active' : ''}`} onClick={toggleNearest} disabled={locLoading}>
                   {locLoading ? '取得中...' : '📍 近い順'}
+                </button>
+                <button className={`filter-btn ${sort === 'popular' ? 'active' : ''}`} onClick={() => setSort(s => s === 'popular' ? 'default' : 'popular')}>
+                  🔥 人気順
                 </button>
               </div>
               <div className="filter-row">
@@ -616,6 +642,7 @@ export default function Home() {
                       )}
                     </div>
                     {s._dist !== null && <span className="dist-tag">{formatDist(s._dist)}</span>}
+                    {(visitCounts[s.id] ?? 0) >= 3 && <span className="popular-tag">🔥 {visitCounts[s.id]}</span>}
                     {checked.has(s.id) && <span className="visited-tag">訪問済み</span>}
                     <button className={`fav-btn ${favorites.has(s.id) ? 'on' : ''}`} onClick={e => { e.stopPropagation(); toggleFavorite(s.id) }}>★</button>
                   </div>
@@ -649,6 +676,9 @@ export default function Home() {
                 <div>
                   <div className="popup-name">{detail.name}</div>
                   <div className="popup-addr">{detail.address}</div>
+                  {(visitCounts[detail.id] ?? 0) > 0 && (
+                    <div style={{ fontSize: 11, color: '#7BBCD8', marginTop: 3 }}>🔥 {visitCounts[detail.id]}人が訪問済み</div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <button className={`fav-btn-lg ${favorites.has(detail.id) ? 'on' : ''}`} onClick={() => toggleFavorite(detail.id)}>
