@@ -234,8 +234,8 @@ export default function Home() {
                 {selected && (
                   <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
                     <div style={{ padding: 4, minWidth: 120 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{selected.name}</div>
-                      <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{selected.address}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#0c0c0b' }}>{selected.name}</div>
+                      <div style={{ fontSize: 11, color: '#111010', marginTop: 2 }}>{selected.address}</div>
                       <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                         <button onClick={() => { toggleCheck(selected.id); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 20, border: 'none', background: checked.has(selected.id) ? '#eee' : '#2D9E6A', color: checked.has(selected.id) ? '#888' : 'white', cursor: 'pointer', fontWeight: 700 }}>
                           {checked.has(selected.id) ? '✓ 訪問済み' : '行った！'}
