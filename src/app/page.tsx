@@ -666,6 +666,9 @@ export default function Home() {
                 {detail.price_adult && <div className="info-row"><span className="info-label">料金</span><span className="info-val">大人 ¥{detail.price_adult}</span></div>}
                 {detail.website && <div className="info-row"><span className="info-label">公式HP</span><a className="info-link" href={detail.website} target="_blank" rel="noreferrer">リンク →</a></div>}
               </div>
+              <div style={{ fontSize: 10, color: '#B0D4E4', marginBottom: 16, textAlign: 'right' }}>
+                情報提供：<a href="https://www.1010.or.jp/" target="_blank" rel="noreferrer" style={{ color: '#7BBCD8', textDecoration: 'none' }}>東京銭湯（1010.or.jp）</a>
+              </div>
               {detail.description && <div className="desc-text">{detail.description}</div>}
               <div style={{ marginBottom: 16 }}>
                 <div className="section-title">🏨 設備情報</div>
