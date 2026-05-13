@@ -7,6 +7,11 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div style={{
+      minHeight: '100vh',
+      background: '#F7F5F0',
+      color: '#1A1A2E',
+    }}>
+    <div style={{
       maxWidth: 680,
       margin: '0 auto',
       padding: '40px 24px 80px',
@@ -15,8 +20,8 @@ export default function PrivacyPage() {
       lineHeight: 1.8,
       fontSize: 14,
     }}>
-      <h1 style={{ fontFamily: 'serif', fontSize: 22, fontWeight: 700, marginBottom: 8 }}>プライバシーポリシー</h1>
-      <p style={{ color: '#9A9890', fontSize: 12, marginBottom: 40 }}>最終更新日：2025年5月13日</p>
+      <h1 style={{ fontFamily: 'serif', fontSize: 22, fontWeight: 700, marginBottom: 8, color: '#1A1A2E' }}>プライバシーポリシー</h1>
+      <p style={{ color: '#9A9890', fontSize: 12, marginBottom: 40 }}>最終更新日：2026年5月13日</p>
 
       <section style={{ marginBottom: 32 }}>
         <h2 style={h2}>1. はじめに</h2>
@@ -127,6 +132,7 @@ export default function PrivacyPage() {
         <a href="/" style={{ color: '#1565C0', fontSize: 13 }}>← アプリに戻る</a>
       </div>
     </div>
+    </div>
   )
 }
 
@@ -137,6 +143,7 @@ const h2: React.CSSProperties = {
   marginTop: 0,
   paddingBottom: 6,
   borderBottom: '1px solid #ECEAE4',
+  color: '#1A1A2E',
 }
 
 const h3: React.CSSProperties = {
@@ -150,4 +157,5 @@ const h3: React.CSSProperties = {
 const ul: React.CSSProperties = {
   paddingLeft: 20,
   margin: '8px 0',
+  color: '#1A1A2E',
 }
