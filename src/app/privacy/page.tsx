@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'プライバシーポリシー | YuMeguri Tokyo',
+  title: 'プライバシーポリシー | YuMeguru Tokyo',
 }
 
 export default function PrivacyPage() {

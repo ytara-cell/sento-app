@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'YuMeguri Tokyo',
+  title: 'YuMeguru Tokyo',
   icons: {
     icon: 'https://fav.farm/♨️', 
   },
