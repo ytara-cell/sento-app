@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { APIProvider, Map, InfoWindow, useMap } from '@vis.gl/react-google-maps'
 import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer'
+import type { Marker } from '@googlemaps/markerclusterer'
 
 const FACILITIES = [
   { key: 'has_sauna',     label: 'サウナ',     icon: '🔥' },
@@ -20,7 +21,7 @@ function ClusteredMarkers({ sentos, checked, onSelect }: {
 }) {
   const map = useMap()
   const clustererRef = useRef<MarkerClusterer | null>(null)
-  const advMarkersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
+  const gmMarkersRef = useRef<google.maps.Marker[]>([])
 
   useEffect(() => {
     if (!map) return
@@ -30,29 +31,34 @@ function ClusteredMarkers({ sentos, checked, onSelect }: {
     })
     return () => {
       clustererRef.current?.clearMarkers()
-      advMarkersRef.current.forEach(m => { m.map = null })
+      gmMarkersRef.current.forEach(m => m.setMap(null))
     }
   }, [map])
 
   useEffect(() => {
     if (!clustererRef.current) return
     clustererRef.current.clearMarkers()
-    advMarkersRef.current.forEach(m => { m.map = null })
+    gmMarkersRef.current.forEach(m => m.setMap(null))
 
     const newMarkers = sentos.map(s => {
       const isVisited = checked.has(s.id)
-      const dot = document.createElement('div')
-      dot.style.cssText = `width:12px;height:12px;border-radius:50%;background:${isVisited ? '#1565C0' : '#90CAF9'};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.35);cursor:pointer;`
-      const marker = new google.maps.marker.AdvancedMarkerElement({
+      const marker = new google.maps.Marker({
         position: { lat: s.lat, lng: s.lng },
-        content: dot,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: isVisited ? '#1565C0' : '#90CAF9',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
       })
       marker.addListener('click', () => onSelect(s))
       return marker
     })
 
-    advMarkersRef.current = newMarkers
-    clustererRef.current.addMarkers(newMarkers)
+    gmMarkersRef.current = newMarkers
+    clustererRef.current.addMarkers(newMarkers as unknown as Marker[])
   }, [sentos, checked])
 
   return null
@@ -374,12 +380,11 @@ export default function Home() {
           </div>
         )}
         {view === 'map' && (
-          <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!} libraries={['marker']}>
+          <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
             <div style={{ height: 'calc(100vh - 90px)' }}>
               <Map
                 defaultCenter={{ lat: 35.6762, lng: 139.6503 }}
                 defaultZoom={13}
-                mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID}
                 gestureHandling="greedy"
               >
                 <ClusteredMarkers sentos={mapSentos} checked={checked} onSelect={setSelected} />
