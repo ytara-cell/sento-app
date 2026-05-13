@@ -457,22 +457,36 @@ export default function Home() {
                 gestureHandling="greedy"
               >
                 <ClusteredMarkers sentos={filtered.filter(s => s.lat && s.lng)} checked={checked} onSelect={setSelected} />
-                {selected && (
-                  <InfoWindow position={{ lat: selected.lat, lng: selected.lng }} onCloseClick={() => setSelected(null)}>
-                    <div style={{ padding: 4, minWidth: 120 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: '#0c0c0b' }}>{selected.name}</div>
-                      <div style={{ fontSize: 11, color: '#111010', marginTop: 2 }}>{selected.address}</div>
-                      <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                        <button onClick={() => { toggleCheck(selected.id); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 20, border: 'none', background: checked.has(selected.id) ? '#eee' : '#2D9E6A', color: checked.has(selected.id) ? '#888' : 'white', cursor: 'pointer', fontWeight: 700 }}>
-                          {checked.has(selected.id) ? '✓ 訪問済み' : '行った！'}
-                        </button>
-                        <button onClick={() => { openDetail(selected); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 20, border: 'none', background: '#1A1A2E', color: '#C5A55A', cursor: 'pointer', fontWeight: 700 }}>
-                          詳細
-                        </button>
+                {selected && (() => {
+                  const imgs = (() => { try { return JSON.parse(selected.images) } catch { return [] } })()
+                  const thumb = imgs[0] ?? null
+                  return (
+                    <InfoWindow
+                      position={{ lat: selected.lat, lng: selected.lng }}
+                      onCloseClick={() => setSelected(null)}
+                      style={{ padding: 0 }}
+                    >
+                      <div style={{ width: 200, overflow: 'hidden', borderRadius: 4, fontFamily: 'sans-serif' }}>
+                        {thumb
+                          ? <img src={thumb} alt={selected.name} style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                          : <div style={{ width: '100%', height: 72, background: '#1A1A2E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: '#C5A55A' }}>♨</div>
+                        }
+                        <div style={{ padding: '8px 10px 10px' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#1A1A2E', marginBottom: 2 }}>{selected.name}</div>
+                          <div style={{ fontSize: 11, color: '#888', marginBottom: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selected.address}</div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => { toggleCheck(selected.id); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '5px 0', borderRadius: 20, border: 'none', background: checked.has(selected.id) ? '#eee' : '#2D9E6A', color: checked.has(selected.id) ? '#888' : 'white', cursor: 'pointer', fontWeight: 700 }}>
+                              {checked.has(selected.id) ? '✓ 済み' : '行った！'}
+                            </button>
+                            <button onClick={() => { openDetail(selected); setSelected(null) }} style={{ flex: 1, fontSize: 11, padding: '5px 0', borderRadius: 20, border: 'none', background: '#1A1A2E', color: '#C5A55A', cursor: 'pointer', fontWeight: 700 }}>
+                              詳細 →
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </InfoWindow>
-                )}
+                    </InfoWindow>
+                  )
+                })()}
               </Map>
             </div>
           </APIProvider>
