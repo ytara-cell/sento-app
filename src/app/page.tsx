@@ -453,7 +453,7 @@ export default function Home() {
         <div className="header">
           <div className="header-top">
             <div>
-              <div className="app-title">♨ 銭湯めぐり</div>
+              <div className="app-title">♨ YuMeguri Tokyo</div>
               <div className="app-subtitle">{checked.size} / {sentos.length} 軒制覇　{pct > 0 ? `${pct}%` : ''}　🎴 {cardCount}枚</div>
             </div>
             <div className="view-toggle">
