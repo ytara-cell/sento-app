@@ -309,8 +309,9 @@ export default function Home() {
         .view-btn.active { background: #C5A55A; color: #1A1A2E; }
         .progress-track { height: 3px; background: #2A2A40; border-radius: 2px; margin-bottom: 14px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #C5A55A, #E8C87A); border-radius: 2px; transition: width 0.5s ease; }
-        .filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-        .filter-btn { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; white-space: nowrap; }
+        .filter-row { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 2px; }
+        .filter-row::-webkit-scrollbar { display: none; }
+        .filter-btn { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid #3A3A50; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; background: transparent; color: #8B8BA0; white-space: nowrap; flex-shrink: 0; }
         .filter-btn.active { background: #C5A55A; color: #1A1A2E; border-color: #C5A55A; }
         .search-box { width: 100%; background: #2A2A40; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #E8E0D0; font-family: 'Noto Sans JP', sans-serif; outline: none; }
         .search-box::placeholder { color: #5A5A70; }
