@@ -357,7 +357,7 @@ export default function Home() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&family=Josefin+Sans:wght@600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         * { box-sizing: border-box; }
         body { margin: 0; background: #EDF6FB; font-family: 'M PLUS Rounded 1c', sans-serif; }
         .app { min-height: 100vh; background: #EDF6FB; }
@@ -365,7 +365,7 @@ export default function Home() {
         /* ヘッダー */
         .header { background: #ffffff; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 10; border-bottom: 1.5px solid #C8E8F5; box-shadow: 0 2px 10px rgba(74,168,212,0.08); }
         .header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-        .app-title { font-size: 17px; color: #2A90BF; font-weight: 600; letter-spacing: 0.06em; white-space: nowrap; font-family: 'Josefin Sans', sans-serif; }
+        .app-title { font-size: 17px; color: #2A90BF; font-weight: 800; letter-spacing: 0.02em; white-space: nowrap; font-family: 'Plus Jakarta Sans', sans-serif; }
         .app-subtitle { font-size: 11px; color: #7BBCD8; margin-top: 2px; }
         .view-toggle { display: flex; background: #E0F3FB; border-radius: 10px; overflow: hidden; gap: 2px; padding: 3px; flex-shrink: 0; }
         .view-btn { padding: 5px 10px; font-size: 12px; border: none; cursor: pointer; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 500; transition: all 0.2s; color: #7BBCD8; background: transparent; border-radius: 8px; white-space: nowrap; }
