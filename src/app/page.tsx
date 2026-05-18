@@ -127,6 +127,13 @@ export default function Home() {
     if (saved) setChecked(new Set(JSON.parse(saved)))
     const savedFav = localStorage.getItem('favorite_sentos')
     if (savedFav) setFavorites(new Set(JSON.parse(savedFav)))
+    // カードデータをlocalStorageから先に読み込む（Supabase読み込み前の表示用）
+    const savedCards = localStorage.getItem('card_sentos')
+    if (savedCards) {
+      const ids: string[] = JSON.parse(savedCards)
+      setCardSet(new Set(ids))
+      setCardCount(ids.length)
+    }
   }, [])
 
   useEffect(() => {
@@ -137,8 +144,11 @@ export default function Home() {
         .select('sento_id', { count: 'exact' })
         .eq('user_key', userKey)
         .eq('has_card', true)
+      const ids = (data ?? []).map((d: any) => d.sento_id)
       setCardCount(count ?? 0)
-      setCardSet(new Set((data ?? []).map((d: any) => d.sento_id)))
+      setCardSet(new Set(ids))
+      // Supabaseの確定値でlocalStorageも更新
+      localStorage.setItem('card_sentos', JSON.stringify(ids))
     }
     loadCardCount()
   }, [])
@@ -300,6 +310,7 @@ export default function Home() {
       const next = new Set(prev)
       if (newVal) next.add(detail.id)
       else next.delete(detail.id)
+      localStorage.setItem('card_sentos', JSON.stringify([...next]))
       return next
     })
     await supabase.from('user_cards').upsert(
