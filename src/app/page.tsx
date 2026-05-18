@@ -144,11 +144,13 @@ export default function Home() {
         .select('sento_id', { count: 'exact' })
         .eq('user_key', userKey)
         .eq('has_card', true)
-      const ids = (data ?? []).map((d: any) => d.sento_id)
-      setCardCount(count ?? 0)
-      setCardSet(new Set(ids))
-      // Supabaseの確定値でlocalStorageも更新
-      localStorage.setItem('card_sentos', JSON.stringify(ids))
+      // Supabaseが空でない場合のみ上書き（空データでlocalStorageを壊さない）
+      if (count !== null && count > 0) {
+        const ids = (data ?? []).map((d: any) => d.sento_id)
+        setCardCount(count)
+        setCardSet(new Set(ids))
+        localStorage.setItem('card_sentos', JSON.stringify(ids))
+      }
     }
     loadCardCount()
   }, [])
