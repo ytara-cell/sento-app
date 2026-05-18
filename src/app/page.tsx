@@ -144,12 +144,28 @@ export default function Home() {
         .select('sento_id', { count: 'exact' })
         .eq('user_key', userKey)
         .eq('has_card', true)
-      // Supabaseが空でない場合のみ上書き（空データでlocalStorageを壊さない）
+      // Supabaseが読めた場合のみ同期（RLS等で0件の場合はlocalStorageを保持）
       if (count !== null && count > 0) {
         const ids = (data ?? []).map((d: any) => d.sento_id)
         setCardCount(count)
         setCardSet(new Set(ids))
         localStorage.setItem('card_sentos', JSON.stringify(ids))
+      } else if (count === 0) {
+        // localStorageにデータがあればそちらを正とする
+        const saved = localStorage.getItem('card_sentos')
+        if (saved) {
+          const ids: string[] = JSON.parse(saved)
+          if (ids.length > 0) {
+            // localStorageのデータをSupabaseに書き戻す
+            const userKey2 = getUserKey()
+            for (const id of ids) {
+              supabase.from('user_cards').upsert(
+                { sento_id: id, user_key: userKey2, has_card: true },
+                { onConflict: 'sento_id,user_key' }
+              ).then()
+            }
+          }
+        }
       }
     }
     loadCardCount()
